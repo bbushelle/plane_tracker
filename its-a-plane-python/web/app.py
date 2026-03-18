@@ -27,6 +27,7 @@ CONFIG_DEFAULTS = {
     "sports_teams": [
         {"name": "Edmonton Oilers", "abbreviation": "EDM", "sport": "hockey", "league": "nhl"},
         {"name": "Green Bay Packers", "abbreviation": "GB", "sport": "football", "league": "nfl"},
+        {"name": "St. Louis Blues", "abbreviation": "STL", "sport": "hockey", "league": "nhl"},
     ],
     "sports_score_delay": 10,
     "sports_display_interval": 30,
@@ -195,6 +196,24 @@ def system_restart():
 def system_shutdown():
     subprocess.Popen(["sudo", "shutdown", "-h", "now"])
     return jsonify({"status": "shutting down"})
+
+
+# --- Log viewer ---
+
+LOGS_DIR = os.path.join(BASE_DIR, "..", "logs")
+ALLOWED_LOGS = {"app": "app.log", "update": "update.log"}
+
+@app.get("/logs/<logname>")
+def view_log(logname):
+    if logname not in ALLOWED_LOGS:
+        return jsonify({"error": "Unknown log"}), 404
+    log_path = os.path.abspath(os.path.join(LOGS_DIR, ALLOWED_LOGS[logname]))
+    try:
+        with open(log_path, "r", encoding="utf-8", errors="replace") as f:
+            lines = f.readlines()
+        return jsonify({"log": logname, "lines": lines[-200:]})
+    except FileNotFoundError:
+        return jsonify({"log": logname, "lines": []})
 
 
 if __name__ == "__main__":
