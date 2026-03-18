@@ -2,6 +2,7 @@ import os
 import json
 import math
 import socket
+import traceback
 from time import sleep
 from threading import Thread, Lock
 from datetime import datetime
@@ -259,6 +260,9 @@ class Overhead:
             d = d.get(key)
         return d if d is not None else default
 
+    def _log(self, msg):
+        print(f"[{datetime.now().strftime('%Y-%m-%dT%H:%M:%S')}] [overhead] {msg}", flush=True)
+
     def _grab(self):
         with self._lock:
             self._new_data = False
@@ -267,21 +271,33 @@ class Overhead:
         data = []
 
         try:
+            self._log("Starting flight data grab")
             bounds = self._api.get_bounds(ZONE_DEFAULT)
             flights = self._api.get_flights(bounds=bounds)
+            self._log(f"Flights in zone (pre-filter): {len(flights)}")
 
             # Altitude filter
             flights = [f for f in flights if MIN_ALTITUDE < f.altitude < MAX_ALTITUDE]
+            self._log(f"Flights after altitude filter (>{MIN_ALTITUDE}ft): {len(flights)}")
 
             # Sort & slice
             flights.sort(key=lambda f: distance_from_flight_to_home(f))
             flights = flights[:MAX_FLIGHT_LOOKUP]
+            self._log(f"Processing top {len(flights)} closest flights")
 
             for f in flights:
+                callsign = f.callsign or ""
+                self._log(f"  Flight {callsign}: alt={f.altitude}ft, "
+                          f"iata_origin={f.origin_airport_iata!r}, "
+                          f"iata_dest={f.destination_airport_iata!r}, "
+                          f"airline_icao={f.airline_icao!r}")
+
                 retries = RETRIES
+                success = False
                 while retries:
                     sleep(RATE_LIMIT_DELAY)
                     try:
+                        self._log(f"    get_flight_details attempt ({RETRIES - retries + 1}/{RETRIES})")
                         d = self._api.get_flight_details(f)
 
                         # Extract fields
@@ -293,10 +309,19 @@ class Overhead:
                                 return ""
                             return val
 
-                        origin = clean_code(f.origin_airport_iata)
-                        destination = clean_code(f.destination_airport_iata)
+                        # Prefer IATA codes from detailed response; fall back to basic flight object
+                        o_detail = self.safe_get(d, "airport", "origin")
+                        dest_detail = self.safe_get(d, "airport", "destination")
 
-                        callsign = f.callsign or ""
+                        origin_from_detail = clean_code(self.safe_get(o_detail, "code", "iata"))
+                        dest_from_detail = clean_code(self.safe_get(dest_detail, "code", "iata"))
+
+                        origin = origin_from_detail or clean_code(f.origin_airport_iata)
+                        destination = dest_from_detail or clean_code(f.destination_airport_iata)
+
+                        self._log(f"    detail result: airline={airline!r}, plane={plane!r}, "
+                                  f"origin={origin!r} (detail={origin_from_detail!r}, basic={f.origin_airport_iata!r}), "
+                                  f"dest={destination!r} (detail={dest_from_detail!r}, basic={f.destination_airport_iata!r})")
 
                         # Times
                         t = self.safe_get(d, "time", default={})
@@ -306,13 +331,10 @@ class Overhead:
                         time_est_arr = self.safe_get(t, "estimated", "arrival")
 
                         # Airport coordinates
-                        o = self.safe_get(d, "airport", "origin")
-                        origin_lat = self.safe_get(o, "position", "latitude")
-                        origin_lon = self.safe_get(o, "position", "longitude")
-
-                        dest = self.safe_get(d, "airport", "destination")
-                        dest_lat = self.safe_get(dest, "position", "latitude")
-                        dest_lon = self.safe_get(dest, "position", "longitude")
+                        origin_lat = self.safe_get(o_detail, "position", "latitude")
+                        origin_lon = self.safe_get(o_detail, "position", "longitude")
+                        dest_lat = self.safe_get(dest_detail, "position", "latitude")
+                        dest_lon = self.safe_get(dest_detail, "position", "longitude")
 
                         dist_o = distance_to_point(f, origin_lat, origin_lon) if origin_lat else 0
                         dist_d = distance_to_point(f, dest_lat, dest_lon) if dest_lat else 0
@@ -347,22 +369,28 @@ class Overhead:
                         }
 
                         data.append(entry)
-
-                        # Log flights
                         log_flight_data(entry)
                         log_farthest_flight(entry)
-
+                        success = True
                         break
 
                     except Exception as e:
                         retries -= 1
+                        self._log(f"    ERROR getting details for {callsign!r} "
+                                  f"(retries left: {retries}): {e}")
+                        if retries == 0:
+                            self._log(f"    All retries exhausted for {callsign!r}, skipping flight")
+                            self._log(traceback.format_exc())
+
+            self._log(f"Grab complete: {len(data)} flights processed")
 
             with self._lock:
                 self._new_data = True
                 self._processing = False
                 self._data = data
 
-        except (ConnectionError, NewConnectionError, MaxRetryError):
+        except (ConnectionError, NewConnectionError, MaxRetryError) as e:
+            self._log(f"Network error during grab: {e}")
             with self._lock:
                 self._new_data = False
                 self._processing = False
