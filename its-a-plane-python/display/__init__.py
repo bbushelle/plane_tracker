@@ -1,5 +1,5 @@
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from setup import frames
 from utilities.animator import Animator
 from utilities.overhead import Overhead
@@ -52,10 +52,11 @@ except (ModuleNotFoundError, NameError):
 
 # Sports config (optional — gracefully disabled if absent)
 try:
-    from config import SPORTS_ENABLED, SPORTS_DISPLAY_INTERVAL, SPORTS_TEAMS
+    from config import SPORTS_ENABLED, SPORTS_DISPLAY_INTERVAL, SPORTS_TEAMS, SPORTS_SCORE_DELAY
 except (ImportError, ModuleNotFoundError, NameError):
     SPORTS_ENABLED = False
     SPORTS_DISPLAY_INTERVAL = 30
+    SPORTS_SCORE_DELAY = 10
     SPORTS_TEAMS = []
 
 def adjust_brightness(matrix):
@@ -137,6 +138,9 @@ class Display(
         self._sports_display_max_frames = int(
             frames.PER_SECOND * SPORTS_DISPLAY_INTERVAL
         )
+        # Timestamp after which a pending score-change display should fire;
+        # None means no score change is queued.
+        self._sports_score_show_at = None
 
         # Initalise animator and scenes
         super().__init__()
@@ -205,12 +209,19 @@ class Display(
                 self._sports_data = fresh_games
                 self._sports_display_frames = 0  # restart display timer
 
-                # Prioritise sports immediately on a score change
-                if score_changed:
-                    self.reset_scene()
+                # On a score change, queue a delayed display instead of
+                # switching immediately — gives the TV broadcast time to catch up
+                if score_changed and self._sports_score_show_at is None:
+                    self._sports_score_show_at = datetime.now() + timedelta(seconds=SPORTS_SCORE_DELAY)
             else:
-                # No live games — stop showing sports
+                # No live games — stop showing sports and cancel any pending delay
                 self._sports_data = []
+                self._sports_score_show_at = None
+
+        # Fire delayed score-change display once the delay has elapsed
+        if self._sports_score_show_at is not None and datetime.now() >= self._sports_score_show_at:
+            self._sports_score_show_at = None
+            self.reset_scene()
 
         # Enforce the display-interval time limit
         if self._sports_data:

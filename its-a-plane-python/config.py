@@ -48,6 +48,8 @@ MAX_CLOSEST = 3 #the amount of closest flights to your house you want in your lo
 # Sports Scores
 SPORTS_ENABLED = True
 SPORTS_DISPLAY_INTERVAL = 30  # seconds to show scores before switching back to planes
+SPORTS_SCORE_DELAY = 10       # seconds to wait after a score change before displaying,
+                               # to account for the API updating ahead of the TV broadcast
 SPORTS_TEAMS = [
     {"name": "Edmonton Oilers", "abbreviation": "EDM", "sport": "hockey", "league": "nhl"},
     {"name": "Green Bay Packers", "abbreviation": "GB", "sport": "football", "league": "nfl"},
