@@ -63,5 +63,6 @@ SPORTS_SCORE_DELAY       = _user_cfg.get("sports_score_delay", 10)
 SPORTS_TEAMS             = _user_cfg.get("sports_teams", [
     {"name": "Edmonton Oilers", "abbreviation": "EDM", "sport": "hockey", "league": "nhl"},
     {"name": "Green Bay Packers", "abbreviation": "GB", "sport": "football", "league": "nfl"},
+    {"name": "St. Louis Blues", "abbreviation": "STL", "sport": "hockey", "league": "nhl"},
 ])
 
