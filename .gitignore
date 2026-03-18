@@ -12,3 +12,9 @@ its-a-plane-python/.weather_cache.json
 
 # Local config overrides (SSID mappings, API keys — managed separately)
 local_config.py
+
+# User-editable settings managed via the web UI
+its-a-plane-python/web/user_config.json
+
+# Environment variables — real values are private; use .env.example as template
+.env

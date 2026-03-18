@@ -5,35 +5,31 @@ At startup, detects the connected SSID via nmcli and returns the matching
 LOCATION_HOME (lat/lon) and a computed ZONE_HOME bounding box (3-mile radius).
 
 If the SSID is not in the map, falls back to the values hardcoded in config.py.
+
+SSID_LOCATIONS is loaded from a .env file at the repo root (two directories
+above this file). If the file or variable is missing, an empty dict is used
+and the app falls back to config.py defaults.
 """
 
+import json
 import math
 import os
 import subprocess
 
+from dotenv import load_dotenv
+
 
 # ---------------------------------------------------------------------------
-# SSID → location mapping
-# Add or edit entries here. Passwords are NOT stored here — they live in the
-# Pi's NetworkManager config only.
+# Load SSID → location mapping from .env
+# The .env file lives at the repo root: ../../ relative to this file.
 # ---------------------------------------------------------------------------
-SSID_LOCATIONS = {
-    "milloosh": {
-        "lat": 42.283751,
-        "lon": -87.969466,
-        "airport": "ORD",
-    },
-    "Komquat": {
-        "lat": 44.60328619517002,
-        "lon": -88.0988388865091,
-        "airport": "GRB",
-    },
-    "boosh-5": {
-        "lat": 44.231570633645646,
-        "lon": -88.3938172032542,
-        "airport": "ATW",
-    },
-}
+_ENV_PATH = os.path.join(os.path.dirname(__file__), "..", "..", ".env")
+load_dotenv(dotenv_path=os.path.abspath(_ENV_PATH))
+
+try:
+    SSID_LOCATIONS = json.loads(os.environ.get("SSID_LOCATIONS", "{}"))
+except (json.JSONDecodeError, TypeError):
+    SSID_LOCATIONS = {}
 
 # Radius in miles to use for ZONE_HOME bounding box
 ZONE_RADIUS_MILES = 3.0

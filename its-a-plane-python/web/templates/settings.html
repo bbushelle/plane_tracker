@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plane Tracker — Settings</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0d0d0d;
+            color: #e0e0e0;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 15px;
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .breadcrumb {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 36px;
+        }
+
+        .breadcrumb a { color: #5599ff; text-decoration: none; }
+        .breadcrumb a:hover { text-decoration: underline; }
+
+        section {
+            background: #161616;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 24px;
+            margin-bottom: 28px;
+            max-width: 820px;
+        }
+
+        section h2 {
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #222;
+            padding-bottom: 10px;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        th {
+            text-align: left;
+            color: #666;
+            font-size: 12px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 6px 10px;
+            border-bottom: 1px solid #222;
+        }
+
+        td {
+            padding: 10px 10px;
+            border-bottom: 1px solid #1e1e1e;
+            vertical-align: middle;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        .empty-row td {
+            color: #555;
+            font-style: italic;
+            text-align: center;
+            padding: 16px;
+        }
+
+        /* Inputs */
+        input[type="text"],
+        input[type="number"] {
+            background: #0d0d0d;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 14px;
+            padding: 7px 10px;
+            width: 100%;
+            outline: none;
+            transition: border-color 0.15s;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            border-color: #5599ff;
+        }
+
+        /* Form grid for add-team */
+        .add-form {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr 1fr auto;
+            gap: 10px;
+            align-items: end;
+            margin-top: 4px;
+        }
+
+        .add-form label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Delays form */
+        .delays-form {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 16px;
+            align-items: end;
+        }
+
+        .delays-form label {
+            display: block;
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 4px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        .field-hint {
+            font-size: 11px;
+            color: #555;
+            margin-top: 4px;
+        }
+
+        /* Buttons */
+        button {
+            font-family: inherit;
+            font-size: 13px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            padding: 8px 14px;
+            transition: background 0.15s, opacity 0.15s;
+            white-space: nowrap;
+        }
+
+        button:disabled { opacity: 0.45; cursor: default; }
+
+        .btn-primary {
+            background: #1a4a99;
+            color: #e0e0e0;
+        }
+        .btn-primary:hover:not(:disabled) { background: #2255bb; }
+
+        .btn-danger {
+            background: #6b1a1a;
+            color: #e0e0e0;
+        }
+        .btn-danger:hover:not(:disabled) { background: #882222; }
+
+        .btn-warning {
+            background: #7a5500;
+            color: #e0e0e0;
+        }
+        .btn-warning:hover:not(:disabled) { background: #996a00; }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        /* System controls */
+        .system-controls {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+        /* Status messages */
+        .status {
+            font-size: 12px;
+            margin-top: 12px;
+            min-height: 18px;
+            letter-spacing: 0.5px;
+        }
+
+        .status.ok   { color: #44cc77; }
+        .status.err  { color: #dd4444; }
+        .status.info { color: #5599ff; }
+    </style>
+</head>
+<body>
+    <h1>PLANE TRACKER</h1>
+    <p class="breadcrumb"><a href="/">&#8592; Dashboard</a> / Settings</p>
+
+    <!-- Sports Teams -->
+    <section>
+        <h2>Sports Teams</h2>
+        <table id="teams-table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Abbr</th>
+                    <th>Sport</th>
+                    <th>League</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="teams-body">
+                <tr class="empty-row"><td colspan="5">Loading...</td></tr>
+            </tbody>
+        </table>
+
+        <div class="add-form">
+            <div>
+                <label for="team-name">Name</label>
+                <input type="text" id="team-name" placeholder="Edmonton Oilers">
+            </div>
+            <div>
+                <label for="team-abbr">Abbreviation</label>
+                <input type="text" id="team-abbr" placeholder="EDM">
+            </div>
+            <div>
+                <label for="team-sport">Sport</label>
+                <input type="text" id="team-sport" placeholder="hockey">
+            </div>
+            <div>
+                <label for="team-league">League</label>
+                <input type="text" id="team-league" placeholder="nhl">
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <button class="btn-primary" onclick="addTeam()">Add</button>
+            </div>
+        </div>
+        <div class="status" id="teams-status"></div>
+    </section>
+
+    <!-- Display Timing -->
+    <section>
+        <h2>Display Timing</h2>
+        <div class="delays-form">
+            <div>
+                <label for="score-delay">Score Delay</label>
+                <input type="number" id="score-delay" min="1" placeholder="10">
+                <p class="field-hint">Seconds to wait after a score change before displaying</p>
+            </div>
+            <div>
+                <label for="display-interval">Display Interval</label>
+                <input type="number" id="display-interval" min="1" placeholder="30">
+                <p class="field-hint">Seconds to show scores before switching back to planes</p>
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <button class="btn-primary" onclick="saveDelays()">Save</button>
+            </div>
+        </div>
+        <div class="status" id="delays-status"></div>
+    </section>
+
+    <!-- System Controls -->
+    <section>
+        <h2>System Controls</h2>
+        <div class="system-controls">
+            <button class="btn-warning" onclick="systemRestart()">Restart App</button>
+            <button class="btn-danger" onclick="systemShutdown()">Shutdown Pi</button>
+        </div>
+        <div class="status" id="system-status"></div>
+    </section>
+
+    <script>
+        // --- Helpers ---
+
+        function setStatus(id, msg, type) {
+            const el = document.getElementById(id);
+            el.textContent = msg;
+            el.className = "status " + (type || "info");
+            if (type === "ok" || type === "info") {
+                setTimeout(() => { if (el.textContent === msg) el.textContent = ""; }, 4000);
+            }
+        }
+
+        async function apiFetch(url, method, body) {
+            const opts = { method: method || "GET", headers: {} };
+            if (body !== undefined) {
+                opts.headers["Content-Type"] = "application/json";
+                opts.body = JSON.stringify(body);
+            }
+            const res = await fetch(url, opts);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || res.statusText);
+            return data;
+        }
+
+        // --- Render teams table ---
+
+        function renderTeams(teams) {
+            const tbody = document.getElementById("teams-body");
+            if (!teams || teams.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No teams configured.</td></tr>';
+                return;
+            }
+            tbody.innerHTML = teams.map(t => `
+                <tr>
+                    <td>${escHtml(t.name)}</td>
+                    <td>${escHtml(t.abbreviation)}</td>
+                    <td>${escHtml(t.sport)}</td>
+                    <td>${escHtml(t.league)}</td>
+                    <td><button class="btn-danger btn-sm" onclick="removeTeam(${escAttr(t.abbreviation)})">Remove</button></td>
+                </tr>
+            `).join("");
+        }
+
+        function escHtml(s) {
+            return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        }
+
+        function escAttr(s) {
+            return "'" + String(s).replace(/'/g, "\\'") + "'";
+        }
+
+        // --- Load config on page load ---
+
+        async function loadConfig() {
+            try {
+                const cfg = await apiFetch("/settings/config");
+                renderTeams(cfg.sports_teams);
+                document.getElementById("score-delay").value = cfg.sports_score_delay;
+                document.getElementById("display-interval").value = cfg.sports_display_interval;
+            } catch (e) {
+                setStatus("teams-status", "Failed to load config: " + e.message, "err");
+            }
+        }
+
+        // --- Add team ---
+
+        async function addTeam() {
+            const name   = document.getElementById("team-name").value.trim();
+            const abbr   = document.getElementById("team-abbr").value.trim();
+            const sport  = document.getElementById("team-sport").value.trim();
+            const league = document.getElementById("team-league").value.trim();
+
+            if (!name || !abbr || !sport || !league) {
+                setStatus("teams-status", "All fields are required.", "err");
+                return;
+            }
+
+            try {
+                const data = await apiFetch("/settings/teams/add", "POST", {
+                    name, abbreviation: abbr, sport, league
+                });
+                renderTeams(data.teams);
+                ["team-name","team-abbr","team-sport","team-league"].forEach(id => {
+                    document.getElementById(id).value = "";
+                });
+                setStatus("teams-status", "Team added.", "ok");
+            } catch (e) {
+                setStatus("teams-status", "Error: " + e.message, "err");
+            }
+        }
+
+        // --- Remove team ---
+
+        async function removeTeam(abbreviation) {
+            if (!confirm(`Remove team "${abbreviation}"?`)) return;
+            try {
+                const data = await apiFetch("/settings/teams/remove", "POST", { abbreviation });
+                renderTeams(data.teams);
+                setStatus("teams-status", "Team removed.", "ok");
+            } catch (e) {
+                setStatus("teams-status", "Error: " + e.message, "err");
+            }
+        }
+
+        // --- Save delays ---
+
+        async function saveDelays() {
+            const scoreDelay       = parseInt(document.getElementById("score-delay").value, 10);
+            const displayInterval  = parseInt(document.getElementById("display-interval").value, 10);
+
+            if (isNaN(scoreDelay) || isNaN(displayInterval)) {
+                setStatus("delays-status", "Both fields must be integers.", "err");
+                return;
+            }
+            if (scoreDelay <= 0 || displayInterval <= 0) {
+                setStatus("delays-status", "Values must be greater than 0.", "err");
+                return;
+            }
+
+            try {
+                await apiFetch("/settings/delays", "POST", {
+                    sports_score_delay: scoreDelay,
+                    sports_display_interval: displayInterval
+                });
+                setStatus("delays-status", "Saved.", "ok");
+            } catch (e) {
+                setStatus("delays-status", "Error: " + e.message, "err");
+            }
+        }
+
+        // --- System controls ---
+
+        async function systemRestart() {
+            if (!confirm("Restart the plane-tracker app?")) return;
+            try {
+                setStatus("system-status", "Sending restart command...", "info");
+                await apiFetch("/system/restart", "POST");
+                setStatus("system-status", "Restarting...", "info");
+            } catch (e) {
+                setStatus("system-status", "Error: " + e.message, "err");
+            }
+        }
+
+        async function systemShutdown() {
+            if (!confirm("Shut down the Pi? You will need physical access to power it back on.")) return;
+            try {
+                setStatus("system-status", "Sending shutdown command...", "info");
+                await apiFetch("/system/shutdown", "POST");
+                setStatus("system-status", "Shutting down...", "info");
+            } catch (e) {
+                setStatus("system-status", "Error: " + e.message, "err");
+            }
+        }
+
+        // Boot
+        loadConfig();
+    </script>
+</body>
+</html>

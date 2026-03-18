@@ -45,13 +45,23 @@ EMAIL = "" #insert your email address between the " ie "example@example.com" to 
 MAX_FARTHEST = 3 #the amount of furthest flights you want in your log
 MAX_CLOSEST = 3 #the amount of closest flights to your house you want in your log
 
-# Sports Scores
+# ---------------------------------------------------------------------------
+# Sports Scores — defaults below are overridden by web/user_config.json if present.
+# Use the web interface (/settings) to change teams and timing without editing this file.
+# ---------------------------------------------------------------------------
+import json as _json, os as _os
+_USER_CONFIG_FILE = _os.path.join(_os.path.dirname(__file__), "web", "user_config.json")
+try:
+    with open(_USER_CONFIG_FILE, "r", encoding="utf-8") as _f:
+        _user_cfg = _json.load(_f)
+except Exception:
+    _user_cfg = {}
+
 SPORTS_ENABLED = True
-SPORTS_DISPLAY_INTERVAL = 30  # seconds to show scores before switching back to planes
-SPORTS_SCORE_DELAY = 10       # seconds to wait after a score change before displaying,
-                               # to account for the API updating ahead of the TV broadcast
-SPORTS_TEAMS = [
+SPORTS_DISPLAY_INTERVAL = _user_cfg.get("sports_display_interval", 30)
+SPORTS_SCORE_DELAY       = _user_cfg.get("sports_score_delay", 10)
+SPORTS_TEAMS             = _user_cfg.get("sports_teams", [
     {"name": "Edmonton Oilers", "abbreviation": "EDM", "sport": "hockey", "league": "nhl"},
     {"name": "Green Bay Packers", "abbreviation": "GB", "sport": "football", "league": "nfl"},
-]
+])
 
