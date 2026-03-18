@@ -184,28 +184,8 @@ APP_LOG    = "/home/tyler/plane-tracker/logs/app.log"
 
 @app.post("/system/restart")
 def system_restart():
-    def _restart():
-        try:
-            time.sleep(1)
-            subprocess.call(["pkill", "-f", "its-a-plane.py"])
-            time.sleep(2)
-            # Use sys.executable so the PATH doesn't need to contain 'python3'
-            # (important when Flask is launched from a cron/daemon environment)
-            with open(APP_LOG, "a") as log_fh:
-                proc = subprocess.Popen(
-                    [sys.executable, APP_SCRIPT],
-                    stdout=log_fh,
-                    stderr=log_fh,
-                    stdin=subprocess.DEVNULL,
-                    start_new_session=True,
-                )
-            log.info("Restarted its-a-plane.py (PID %s)", proc.pid)
-        except Exception as exc:
-            log.error("Restart failed: %s", exc)
-
-    import threading
-    threading.Thread(target=_restart, daemon=True).start()
-    return jsonify({"status": "restarting"})
+    subprocess.Popen(["sudo", "reboot"])
+    return jsonify({"status": "rebooting"})
 
 
 @app.post("/system/shutdown")

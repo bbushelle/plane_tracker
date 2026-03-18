@@ -318,7 +318,7 @@
     <section>
         <h2>System Controls</h2>
         <div class="system-controls">
-            <button class="btn-warning" onclick="systemRestart()">Restart App</button>
+            <button class="btn-warning" onclick="systemRestart()">Restart Pi</button>
             <button class="btn-danger" onclick="systemShutdown()">Shutdown Pi</button>
         </div>
         <div class="status" id="system-status"></div>
@@ -474,11 +474,11 @@
         // --- System controls ---
 
         async function systemRestart() {
-            if (!confirm("Restart the plane-tracker app?")) return;
+            if (!confirm("Restart the Pi? The web interface will be unavailable for ~60 seconds.")) return;
             try {
                 setStatus("system-status", "Sending restart command...", "info");
                 await apiFetch("/system/restart", "POST");
-                setStatus("system-status", "Restarting...", "info");
+                setStatus("system-status", "Rebooting Pi...", "info");
             } catch (e) {
                 setStatus("system-status", "Error: " + e.message, "err");
             }
