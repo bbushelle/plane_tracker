@@ -96,7 +96,9 @@ fi
 step "STEP 2: Cloning repository"
 
 if [[ -d "${REPO_DIR}/.git" ]]; then
-    log "Repository already exists at ${REPO_DIR}. Skipping clone."
+    log "Repository already exists at ${REPO_DIR}. Pulling latest changes..."
+    git -C "$REPO_DIR" pull origin main
+    log "Pull complete."
 else
     log "Cloning ${REPO_URL} → ${REPO_DIR} ..."
     git clone "$REPO_URL" "$REPO_DIR"
@@ -153,6 +155,7 @@ fi
 step "STEP 3: Migrating runtime data"
 
 DEST_DIR="${REPO_DIR}/its-a-plane-python"
+mkdir -p "$DEST_DIR"
 
 for fname in "${MIGRATE_FILES[@]}"; do
     src="${OLD_DIR}/${fname}"
