@@ -175,17 +175,26 @@ def settings_delays():
 
 # --- System controls ---
 
+APP_SCRIPT = "/home/tyler/plane-tracker/its-a-plane-python/its-a-plane.py"
+APP_LOG    = "/home/tyler/plane-tracker/logs/app.log"
+
 @app.post("/system/restart")
 def system_restart():
     def _restart():
         time.sleep(1)
-        subprocess.Popen(["pkill", "-f", "its-a-plane.py"])
+        subprocess.call(["pkill", "-f", "its-a-plane.py"])
         time.sleep(2)
-        subprocess.Popen(
-            "nohup python3 /home/tyler/plane-tracker/its-a-plane-python/its-a-plane.py "
-            ">> /home/tyler/plane-tracker/logs/app.log 2>&1 &",
-            shell=True
-        )
+        # Open the log file for append and launch the app fully detached
+        # (start_new_session=True puts it in its own process group so it
+        # survives the Flask thread and any SIGHUP from the parent dying)
+        with open(APP_LOG, "a") as log_fh:
+            subprocess.Popen(
+                ["python3", APP_SCRIPT],
+                stdout=log_fh,
+                stderr=log_fh,
+                stdin=subprocess.DEVNULL,
+                start_new_session=True,
+            )
 
     import threading
     threading.Thread(target=_restart, daemon=True).start()
