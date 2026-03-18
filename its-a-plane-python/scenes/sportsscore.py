@@ -171,6 +171,11 @@ class SportsScoreScene(object):
         if not self._sports_data:
             return
 
+        # Planes take priority — wait until the current scroll cycle finishes
+        # before taking over the display
+        if self._data and not self._data_all_looped:
+            return
+
         # Cycle through multiple live games
         self._sports_frame_count += 1
         if self._sports_frame_count >= FRAMES_PER_GAME:

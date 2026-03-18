@@ -218,10 +218,13 @@ class Display(
                 self._sports_data = []
                 self._sports_score_show_at = None
 
-        # Fire delayed score-change display once the delay has elapsed
+        # Fire delayed score-change display once the delay has elapsed.
+        # Only reset the scene if planes aren't mid-scroll — sports_score will
+        # start drawing naturally on the next completed plane cycle if we skip this.
         if self._sports_score_show_at is not None and datetime.now() >= self._sports_score_show_at:
             self._sports_score_show_at = None
-            self.reset_scene()
+            if not self._data or self._data_all_looped:
+                self.reset_scene()
 
         # Enforce the display-interval time limit
         if self._sports_data:
