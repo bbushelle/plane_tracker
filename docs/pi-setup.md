@@ -18,7 +18,16 @@ installation to the new git-managed `plane-tracker` repository.
 
 ## One-time setup steps
 
-### 1. Copy the script to the Pi
+### 1. Copy the setup script and .env to the Pi
+
+The `.env` file (SSID locations) is gitignored and won't be cloned. Copy both from your local machine first:
+
+```bash
+scp scripts/setup-pi.sh tyler@autism-pi:/home/tyler/setup-pi.sh
+scp .env tyler@autism-pi:/home/tyler/plane-tracker-env
+```
+
+> The `.env` will be moved into place by the setup script, or you can copy it manually after cloning to `/home/tyler/plane-tracker/.env`.
 
 ```bash
 scp scripts/setup-pi.sh tyler@autism-pi:/home/tyler/setup-pi.sh

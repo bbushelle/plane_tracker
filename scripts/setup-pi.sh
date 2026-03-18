@@ -118,7 +118,37 @@ else
 fi
 
 # ---------------------------------------------------------------------------
-# STEP 3 — Migrate runtime data from the old location
+# STEP 3 — Install Python dependencies
+# ---------------------------------------------------------------------------
+step "STEP 3: Installing Python dependencies"
+
+REQUIREMENTS="${REPO_DIR}/its-a-plane-python/requirements.txt"
+
+if [[ -f "$REQUIREMENTS" ]]; then
+    log "Installing from ${REQUIREMENTS} ..."
+    pip3 install -r "$REQUIREMENTS"
+    log "Dependencies installed."
+else
+    log "WARNING: requirements.txt not found at ${REQUIREMENTS}. Skipping."
+fi
+
+# ---------------------------------------------------------------------------
+# STEP 3b — Check for .env file (gitignored, must be copied manually)
+# ---------------------------------------------------------------------------
+ENV_FILE="${REPO_DIR}/.env"
+
+if [[ -f "$ENV_FILE" ]]; then
+    log ".env file found at ${ENV_FILE}."
+else
+    log "WARNING: .env file not found at ${ENV_FILE}."
+    log "  The app will fall back to config.py defaults for location settings."
+    log "  To fix, copy your .env from your local machine:"
+    log "    scp /path/to/plane_tracker/.env tyler@autism-pi:${ENV_FILE}"
+    log "  Then restart the app."
+fi
+
+# ---------------------------------------------------------------------------
+# STEP 4 — Migrate runtime data from the old location
 # ---------------------------------------------------------------------------
 step "STEP 3: Migrating runtime data"
 
@@ -145,7 +175,7 @@ done
 # ---------------------------------------------------------------------------
 # STEP 4 — Remove old @reboot cron entry
 # ---------------------------------------------------------------------------
-step "STEP 4: Removing old @reboot cron entry"
+step "STEP 5: Removing old @reboot cron entry"
 
 EXISTING_CRONTAB=$(crontab -l 2>/dev/null || true)
 
@@ -160,7 +190,7 @@ fi
 # ---------------------------------------------------------------------------
 # STEP 5 — Install new @reboot cron entry
 # ---------------------------------------------------------------------------
-step "STEP 5: Installing new @reboot cron entry"
+step "STEP 6: Installing new @reboot cron entry"
 
 EXISTING_CRONTAB=$(crontab -l 2>/dev/null || true)
 
@@ -179,7 +209,7 @@ fi
 # ---------------------------------------------------------------------------
 # STEP 6 — Install nightly update cron via install-cron.sh
 # ---------------------------------------------------------------------------
-step "STEP 6: Installing nightly update cron"
+step "STEP 7: Installing nightly update cron"
 
 INSTALL_CRON="${REPO_DIR}/scripts/install-cron.sh"
 
@@ -199,7 +229,7 @@ fi
 # ---------------------------------------------------------------------------
 # STEP 7 — Stop old app instance and launch from new location
 # ---------------------------------------------------------------------------
-step "STEP 7: Restarting application from new location"
+step "STEP 8: Restarting application from new location"
 
 if pkill -f "its-a-plane.py" 2>/dev/null; then
     log "Stopped running its-a-plane.py process."
