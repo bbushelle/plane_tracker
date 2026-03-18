@@ -129,6 +129,15 @@ class Display(
         if SPORTS_ENABLED and SPORTS_TEAMS:
             self.sports_poller = SportsPoller(teams_config=SPORTS_TEAMS)
             self.sports_poller.grab_data()
+            # Pre-download team logos in the background so they are ready
+            # before any game starts.  Skips logos that are already cached.
+            from utilities.sports import download_team_logos
+            from threading import Thread
+            Thread(
+                target=download_team_logos,
+                args=(SPORTS_TEAMS,),
+                daemon=True,
+            ).start()
         else:
             self.sports_poller = None
 

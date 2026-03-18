@@ -18,3 +18,6 @@ its-a-plane-python/web/user_config.json
 
 # Environment variables — real values are private; use .env.example as template
 .env
+
+# Downloaded sports team logos (cached at runtime from ESPN)
+its-a-plane-python/sports_logos/
