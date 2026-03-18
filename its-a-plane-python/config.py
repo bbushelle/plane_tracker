@@ -5,9 +5,9 @@
 # ---------------------------------------------------------------------------
 try:
     from utilities.location import get_location as _get_location
-    _detected_location, _detected_zone = _get_location()
+    _detected_location, _detected_zone, _detected_airport = _get_location()
 except Exception:
-    _detected_location, _detected_zone = None, None
+    _detected_location, _detected_zone, _detected_airport = None, None, None
 
 if _detected_location and _detected_zone:
     LOCATION_HOME = _detected_location
@@ -37,7 +37,7 @@ NIGHT_BRIGHTNESS = False #True for on False for off
 NIGHT_START = "22:00" #dims screen between these hours
 NIGHT_END = "06:00"
 GPIO_SLOWDOWN = 2 #depends what Pi you have I use 2 for Pi 3 and 1 for Pi Zero
-JOURNEY_CODE_SELECTED = "ORD" #your home airport code ALL CAPS ie ORD
+JOURNEY_CODE_SELECTED = _detected_airport if _detected_airport else "ORD" #your home airport code ALL CAPS ie ORD
 JOURNEY_BLANK_FILLER = " ? " #what to display if theres no airport code
 HAT_PWM_ENABLED = False #only if you haven't soldered the PWM bridge use True if you did
 FORECAST_DAYS = 3 #today plus the next two days

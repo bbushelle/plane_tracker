@@ -21,14 +21,17 @@ SSID_LOCATIONS = {
     "milloosh": {
         "lat": 42.283751,
         "lon": -87.969466,
+        "airport": "ORD",
     },
     "Komquat": {
         "lat": 44.60328619517002,
         "lon": -88.0988388865091,
+        "airport": "GRB",
     },
     "boosh-5": {
         "lat": 44.231570633645646,
         "lon": -88.3938172032542,
+        "airport": "ATW",
     },
 }
 
@@ -83,13 +86,14 @@ def get_location():
     """
     ssid = get_current_ssid()
     if ssid is None:
-        return None, None
+        return None, None, None
 
     entry = SSID_LOCATIONS.get(ssid)
     if entry is None:
-        return None, None
+        return None, None, None
 
     lat, lon = entry["lat"], entry["lon"]
     location_home = [lat, lon]
     zone_home = _bounding_box(lat, lon, ZONE_RADIUS_MILES)
-    return location_home, zone_home
+    airport = entry.get("airport")
+    return location_home, zone_home, airport
