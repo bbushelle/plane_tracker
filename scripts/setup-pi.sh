@@ -128,7 +128,9 @@ REQUIREMENTS="${REPO_DIR}/its-a-plane-python/requirements.txt"
 
 if [[ -f "$REQUIREMENTS" ]]; then
     log "Installing from ${REQUIREMENTS} ..."
-    pip3 install -r "$REQUIREMENTS"
+    # Debian 13+ marks the system Python as externally managed (PEP 668).
+    # This Pi runs a single dedicated app so installing system-wide is safe.
+    pip3 install --break-system-packages -r "$REQUIREMENTS"
     log "Dependencies installed."
 else
     log "WARNING: requirements.txt not found at ${REQUIREMENTS}. Skipping."
