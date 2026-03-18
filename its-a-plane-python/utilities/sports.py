@@ -6,7 +6,9 @@ Runs a background thread (mirroring the Overhead pattern) that fetches
 scoreboard data and exposes structured game info to the display layer.
 """
 
+import io
 import logging
+import os
 from threading import Thread, Lock
 from datetime import datetime
 
@@ -19,6 +21,16 @@ except ImportError:
 ESPN_SCOREBOARD_URL = (
     "https://site.api.espn.com/apis/site/v2/sports/{sport}/{league}/scoreboard"
 )
+
+# ESPN team logo URL template (500px version; we'll resize on download)
+ESPN_LOGO_URL = "https://a.espncdn.com/i/teamlogos/{league}/500/{abbr}.png"
+
+# Sports logos cache directory (its-a-plane-python/sports_logos/)
+_BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+SPORTS_LOGOS_DIR = os.path.join(_BASE_DIR, "sports_logos")
+
+# Size logos are resized to before caching (matches flightlogo.py LOGO_SIZE)
+SPORTS_LOGO_SIZE = 12
 
 # Poll intervals (seconds)
 POLL_INTERVAL_LIVE = 60       # while a game is in progress
@@ -103,6 +115,60 @@ def _parse_game(event: dict) -> dict:
         "status_detail": status_detail,
         "game_id": event.get("id", ""),
     }
+
+
+def download_team_logos(teams_config: list):
+    """
+    Pre-download and cache ESPN team logos for all configured teams.
+
+    Logos are saved to SPORTS_LOGOS_DIR/{ABBREVIATION}.png, resized to
+    SPORTS_LOGO_SIZE x SPORTS_LOGO_SIZE.  Safe to call at startup — already-
+    cached logos are skipped.  Runs without raising; logs warnings on failure.
+    """
+    if requests is None:
+        logger.warning("requests library not available; skipping logo download")
+        return
+
+    try:
+        from PIL import Image
+    except ImportError:
+        logger.warning("Pillow not available; skipping logo download")
+        return
+
+    os.makedirs(SPORTS_LOGOS_DIR, exist_ok=True)
+
+    for team in teams_config:
+        abbr = team.get("abbreviation", "").upper()
+        league = team.get("league", "").lower()
+        if not abbr or not league:
+            continue
+
+        dest = os.path.join(SPORTS_LOGOS_DIR, f"{abbr}.png")
+        if os.path.exists(dest):
+            logger.debug("Logo already cached: %s", abbr)
+            continue
+
+        url = ESPN_LOGO_URL.format(league=league, abbr=abbr.lower())
+        try:
+            resp = requests.get(url, timeout=10)
+            resp.raise_for_status()
+            img = Image.open(io.BytesIO(resp.content)).convert("RGBA")
+
+            # Composite onto black background so alpha pixels become black
+            bg = Image.new("RGB", img.size, (0, 0, 0))
+            bg.paste(img, mask=img.split()[3])
+            img = bg
+
+            try:
+                resample = Image.Resampling.LANCZOS  # Pillow 10+
+            except AttributeError:
+                resample = Image.ANTIALIAS  # Pillow <10
+
+            img = img.resize((SPORTS_LOGO_SIZE, SPORTS_LOGO_SIZE), resample)
+            img.save(dest)
+            logger.info("Cached logo for %s → %s", abbr, dest)
+        except Exception as exc:
+            logger.warning("Failed to download logo for %s (%s): %s", abbr, url, exc)
 
 
 def get_live_games(teams_config: list) -> list:

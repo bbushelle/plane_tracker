@@ -15,6 +15,7 @@ leaving the rest of the display pipeline unaffected.
 """
 
 import logging
+import os
 from utilities.animator import Animator
 from setup import colours, fonts, frames, screen
 from rgbmatrix import graphics
@@ -38,6 +39,24 @@ COLOUR_AWAY_SCORE = colours.LIGHT_BLUE
 COLOUR_ABBR = colours.WHITE
 COLOUR_SEPARATOR = colours.GREY
 COLOUR_PERIOD = colours.LIGHT_GREY
+
+# Vertical offset for logos on the canvas (pixels from top)
+LOGO_Y_OFFSET = 8
+
+
+def _load_sport_logo(abbr: str):
+    """Load a cached team logo as an RGB PIL Image, or return None."""
+    try:
+        from PIL import Image
+        from utilities.sports import SPORTS_LOGOS_DIR
+        path = os.path.join(SPORTS_LOGOS_DIR, f"{abbr.upper()}.png")
+        if not os.path.exists(path):
+            return None
+        return Image.open(path).convert("RGB")
+    except Exception as exc:
+        logger.debug("Could not load sport logo %s: %s", abbr, exc)
+        return None
+
 
 # How many display frames to hold a single game before cycling to the next
 # when multiple live games are present.  At frames.PERIOD = 0.1 s/frame,
@@ -101,11 +120,9 @@ class SportsScoreScene(object):
         league = game.get("league", "").upper()
 
         # --- Top label row ---
-        # "LIVE" on the left
         graphics.DrawText(
             self.canvas, LABEL_FONT, 0, LABEL_Y, COLOUR_LIVE_LABEL, "LIVE"
         )
-        # League abbreviation on the right
         league_w = _text_width(LABEL_FONT, league)
         graphics.DrawText(
             self.canvas,
@@ -116,34 +133,53 @@ class SportsScoreScene(object):
             league,
         )
 
-        # --- Score row:  AWY  X - X  HOM  ---
-        # Build segments and draw with per-segment colour
-        # Format: "{away} {away_score} - {home_score} {home}"
-        # We draw each segment separately so teams get distinct colours.
-        separator = " - "
+        # --- Try to load team logos ---
+        away_logo = _load_sport_logo(away)
+        home_logo = _load_sport_logo(home)
 
-        away_score_str = str(away_score)
-        home_score_str = str(home_score)
+        if away_logo and home_logo:
+            # With logos: place them at the sides, show score numbers in the
+            # centre of the remaining space (x=12 to x=52 = 40px).
+            from utilities.sports import SPORTS_LOGO_SIZE
+            logo_x_home = screen.WIDTH - SPORTS_LOGO_SIZE
 
-        segments = [
-            (away,            COLOUR_ABBR),
-            (" ",             COLOUR_SEPARATOR),
-            (away_score_str,  COLOUR_AWAY_SCORE),
-            (separator,       COLOUR_SEPARATOR),
-            (home_score_str,  COLOUR_HOME_SCORE),
-            (" ",             COLOUR_SEPARATOR),
-            (home,            COLOUR_ABBR),
-        ]
+            # Draw logos directly onto the matrix (same pattern as FlightLogoScene)
+            self.matrix.SetImage(away_logo, 0, LOGO_Y_OFFSET)
+            self.matrix.SetImage(home_logo, logo_x_home, LOGO_Y_OFFSET)
 
-        full_text = "".join(s for s, _ in segments)
-        total_w = _text_width(SCORE_FONT, full_text)
-        x = max(0, (screen.WIDTH - total_w) // 2)
+            # Score: colour-coded numbers only, centred in the middle column
+            score_segments = [
+                (str(away_score), COLOUR_AWAY_SCORE),
+                (" - ",           COLOUR_SEPARATOR),
+                (str(home_score), COLOUR_HOME_SCORE),
+            ]
+            full_score = "".join(s for s, _ in score_segments)
+            score_w = _text_width(SCORE_FONT, full_score)
+            left_bound = SPORTS_LOGO_SIZE
+            centre_area = screen.WIDTH - 2 * SPORTS_LOGO_SIZE
+            x = left_bound + max(0, (centre_area - score_w) // 2)
+            for seg_text, seg_colour in score_segments:
+                graphics.DrawText(self.canvas, SCORE_FONT, x, SCORE_Y, seg_colour, seg_text)
+                x += _text_width(SCORE_FONT, seg_text)
 
-        char_w = _text_width(SCORE_FONT, "X")  # single-char advance estimate
-        for seg_text, seg_colour in segments:
-            seg_w = _text_width(SCORE_FONT, seg_text)
-            graphics.DrawText(self.canvas, SCORE_FONT, x, SCORE_Y, seg_colour, seg_text)
-            x += seg_w
+        else:
+            # Fallback: text-only layout  "AWY X - X HOM"
+            separator = " - "
+            segments = [
+                (away,            COLOUR_ABBR),
+                (" ",             COLOUR_SEPARATOR),
+                (str(away_score), COLOUR_AWAY_SCORE),
+                (separator,       COLOUR_SEPARATOR),
+                (str(home_score), COLOUR_HOME_SCORE),
+                (" ",             COLOUR_SEPARATOR),
+                (home,            COLOUR_ABBR),
+            ]
+            full_text = "".join(s for s, _ in segments)
+            total_w = _text_width(SCORE_FONT, full_text)
+            x = max(0, (screen.WIDTH - total_w) // 2)
+            for seg_text, seg_colour in segments:
+                graphics.DrawText(self.canvas, SCORE_FONT, x, SCORE_Y, seg_colour, seg_text)
+                x += _text_width(SCORE_FONT, seg_text)
 
         # --- Period / clock row ---
         if period:
