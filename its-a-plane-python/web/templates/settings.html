@@ -188,6 +188,50 @@
             flex-wrap: wrap;
         }
 
+        /* Log viewer */
+        .log-toolbar {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 12px;
+            flex-wrap: wrap;
+        }
+
+        .log-toolbar select {
+            background: #0d0d0d;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #e0e0e0;
+            font-family: inherit;
+            font-size: 13px;
+            padding: 7px 10px;
+            outline: none;
+        }
+
+        .log-toolbar label {
+            font-size: 12px;
+            color: #666;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+        }
+
+        #log-output {
+            background: #0a0a0a;
+            border: 1px solid #222;
+            border-radius: 4px;
+            color: #99cc99;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            padding: 12px;
+            height: 320px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+
         /* Status messages */
         .status {
             font-size: 12px;
@@ -278,6 +322,23 @@
             <button class="btn-danger" onclick="systemShutdown()">Shutdown Pi</button>
         </div>
         <div class="status" id="system-status"></div>
+    </section>
+
+    <!-- Log Viewer -->
+    <section>
+        <h2>Logs</h2>
+        <div class="log-toolbar">
+            <select id="log-select">
+                <option value="app">app.log</option>
+                <option value="update">update.log</option>
+            </select>
+            <button class="btn-primary btn-sm" onclick="loadLog()">Refresh</button>
+            <label>
+                <input type="checkbox" id="log-autoreload" onchange="toggleAutoReload()">
+                Auto-refresh (5s)
+            </label>
+        </div>
+        <div id="log-output">Loading...</div>
     </section>
 
     <script>
@@ -434,8 +495,33 @@
             }
         }
 
+        // --- Log viewer ---
+
+        let _autoReloadTimer = null;
+
+        async function loadLog() {
+            const logName = document.getElementById("log-select").value;
+            const el = document.getElementById("log-output");
+            try {
+                const data = await apiFetch(`/logs/${logName}`);
+                el.textContent = data.lines.length ? data.lines.join("") : "(log is empty)";
+                el.scrollTop = el.scrollHeight;
+            } catch (e) {
+                el.textContent = "Error loading log: " + e.message;
+            }
+        }
+
+        function toggleAutoReload() {
+            const on = document.getElementById("log-autoreload").checked;
+            clearInterval(_autoReloadTimer);
+            if (on) _autoReloadTimer = setInterval(loadLog, 5000);
+        }
+
+        document.getElementById("log-select").addEventListener("change", loadLog);
+
         // Boot
         loadConfig();
+        loadLog();
     </script>
 </body>
 </html>
