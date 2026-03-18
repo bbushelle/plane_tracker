@@ -1,9 +1,13 @@
 #!/usr/bin/python3
 from flask import Flask, render_template, jsonify, send_from_directory, request
 import json
+import logging
 import os
 import subprocess
+import sys
 import time
+
+log = logging.getLogger(__name__)
 
 # /web is the folder that this file lives in
 WEB_DIR = os.path.dirname(__file__)
@@ -181,20 +185,23 @@ APP_LOG    = "/home/tyler/plane-tracker/logs/app.log"
 @app.post("/system/restart")
 def system_restart():
     def _restart():
-        time.sleep(1)
-        subprocess.call(["pkill", "-f", "its-a-plane.py"])
-        time.sleep(2)
-        # Open the log file for append and launch the app fully detached
-        # (start_new_session=True puts it in its own process group so it
-        # survives the Flask thread and any SIGHUP from the parent dying)
-        with open(APP_LOG, "a") as log_fh:
-            subprocess.Popen(
-                ["python3", APP_SCRIPT],
-                stdout=log_fh,
-                stderr=log_fh,
-                stdin=subprocess.DEVNULL,
-                start_new_session=True,
-            )
+        try:
+            time.sleep(1)
+            subprocess.call(["pkill", "-f", "its-a-plane.py"])
+            time.sleep(2)
+            # Use sys.executable so the PATH doesn't need to contain 'python3'
+            # (important when Flask is launched from a cron/daemon environment)
+            with open(APP_LOG, "a") as log_fh:
+                proc = subprocess.Popen(
+                    [sys.executable, APP_SCRIPT],
+                    stdout=log_fh,
+                    stderr=log_fh,
+                    stdin=subprocess.DEVNULL,
+                    start_new_session=True,
+                )
+            log.info("Restarted its-a-plane.py (PID %s)", proc.pid)
+        except Exception as exc:
+            log.error("Restart failed: %s", exc)
 
     import threading
     threading.Thread(target=_restart, daemon=True).start()
@@ -226,4 +233,5 @@ def view_log(logname):
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
     app.run(host="0.0.0.0", port=8080, debug=False)
