@@ -144,8 +144,8 @@ class SportsScoreScene(object):
             logo_x_home = screen.WIDTH - SPORTS_LOGO_SIZE
 
             # Draw logos directly onto the matrix (same pattern as FlightLogoScene)
-            self.matrix.SetImage(away_logo, 0, LOGO_Y_OFFSET)
-            self.matrix.SetImage(home_logo, logo_x_home, LOGO_Y_OFFSET)
+            self.canvas.SetImage(away_logo, 0, LOGO_Y_OFFSET)
+            self.canvas.SetImage(home_logo, logo_x_home, LOGO_Y_OFFSET)
 
             # Score: colour-coded numbers only, centred in the middle column
             score_segments = [

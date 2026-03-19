@@ -160,10 +160,8 @@ class Display(
 
         # Track how long we have been showing sports so we can time-limit it
         self._sports_display_frames = 0
-        # frames.PER_SECOND is 1/PERIOD; SPORTS_DISPLAY_INTERVAL is in seconds
-        self._sports_display_max_frames = int(
-            frames.PER_SECOND * SPORTS_DISPLAY_INTERVAL
-        )
+        # check_sports_data fires every 5 seconds; count cycles, not raw frames
+        self._sports_display_max_frames = max(1, SPORTS_DISPLAY_INTERVAL // 5)
         # Timestamp after which a pending score-change display should fire;
         # None means no score change is queued.
         self._sports_score_show_at = None
