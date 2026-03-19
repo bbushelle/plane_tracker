@@ -393,27 +393,26 @@ class Display(
         """Read test_scene.json and inject mock data as requested."""
         try:
             with open(_TEST_SCENE_FILE) as f:
-                data = _json.load(f)
-            new_mode = data.get("mode")
+                new_mode = _json.load(f).get("mode")
         except FileNotFoundError:
             new_mode = None
         except Exception:
-            new_mode = None
+            return  # Don't change state on transient read error
 
-        if new_mode == self._test_mode and new_mode != "cycle":
-            return  # Nothing changed
-
-        prev_mode = self._test_mode
+        mode_changed = (new_mode != self._test_mode)
         self._test_mode = new_mode
 
         if new_mode is None:
-            # Restore normal operation — clear injected data, let pollers refill
-            self._data = []
-            self._sports_data = []
-            self._test_cycle_phase = -1
-            self._test_cycle_switch_at = None
-            self.reset_scene()
-        else:
+            if mode_changed:
+                # Restore normal operation — clear injected data, let pollers refill
+                self._data = []
+                self._sports_data = []
+                self._test_cycle_phase = -1
+                self._test_cycle_switch_at = None
+                self.reset_scene()
+        elif new_mode == "cycle":
+            self._advance_test_cycle()
+        elif mode_changed:
             self._apply_test_mode()
 
     def _apply_test_mode(self):

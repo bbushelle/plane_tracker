@@ -98,6 +98,7 @@ class SportsScoreScene(object):
         self._sports_data: list = []
         self._sports_index: int = 0
         self._sports_frame_count: int = 0
+        self._logo_cache: dict = {}  # abbr → PIL Image or None
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -107,15 +108,14 @@ class SportsScoreScene(object):
         """Wipe the full 64x32 canvas."""
         self.draw_square(0, 0, screen.WIDTH, screen.HEIGHT, colours.BLACK)
 
-    def _draw_logo_to_canvas(self, logo, offset_x: int, offset_y: int):
-        """Blit a PIL RGB image onto self.canvas using SetPixel."""
-        for py in range(logo.height):
-            for px in range(logo.width):
-                r, g, b = logo.getpixel((px, py))
-                self.canvas.SetPixel(offset_x + px, offset_y + py, r, g, b)
+    def _get_logo(self, abbr: str):
+        """Return cached PIL RGB logo image, or None if unavailable."""
+        if abbr not in self._logo_cache:
+            self._logo_cache[abbr] = _load_sport_logo(abbr)
+        return self._logo_cache[abbr]
 
     def _draw_game(self, game: dict):
-        """Render a single live game onto self.canvas."""
+        """Render a single live game onto self.canvas (text only; logos drawn after sync)."""
         self._clear_sports_area()
 
         home       = game.get("home_abbr", "HOM")
@@ -132,7 +132,6 @@ class SportsScoreScene(object):
         if period:
             header_right = f"P{period}  {clock}" if clock else f"P{period}"
         else:
-            # Pre/post-game — show a short status, truncated to avoid overflow
             detail = game.get("status_detail", "")
             header_right = detail[:10]
 
@@ -144,21 +143,16 @@ class SportsScoreScene(object):
                 COLOUR_PERIOD, header_right,
             )
 
-        # ---- Try to load team logos ----
-        away_logo = _load_sport_logo(away)
-        home_logo = _load_sport_logo(home)
+        away_logo = self._get_logo(away)
+        home_logo = self._get_logo(home)
 
         if away_logo and home_logo:
             from utilities.sports import SPORTS_LOGO_SIZE
             home_logo_x = screen.WIDTH - SPORTS_LOGO_SIZE
 
-            # Draw logos pixel-by-pixel into the canvas
-            self._draw_logo_to_canvas(away_logo, 0, LOGO_Y_OFFSET)
-            self._draw_logo_to_canvas(home_logo, home_logo_x, LOGO_Y_OFFSET)
-
-            # Score numbers centred in the space between the logos
-            left_bound   = SPORTS_LOGO_SIZE + 1
-            centre_area  = screen.WIDTH - 2 * (SPORTS_LOGO_SIZE + 1)
+            # Score centred in the space between the logos
+            left_bound  = SPORTS_LOGO_SIZE + 1
+            centre_area = screen.WIDTH - 2 * (SPORTS_LOGO_SIZE + 1)
             score_segs = [
                 (str(away_score), COLOUR_AWAY_SCORE),
                 (" - ",           COLOUR_SEPARATOR),
@@ -182,7 +176,6 @@ class SportsScoreScene(object):
 
         else:
             # ---- Text-only fallback ----
-            # Abbreviations: away left-edge, home right-edge
             graphics.DrawText(
                 self.canvas, LABEL_FONT, 0, FALLBACK_ABBR_Y,
                 COLOUR_ABBR, away[:4],
@@ -194,7 +187,6 @@ class SportsScoreScene(object):
                 COLOUR_ABBR, home[:4],
             )
 
-            # Score centred — use narrow font so double-digit scores fit
             score_segs = [
                 (str(away_score), COLOUR_AWAY_SCORE),
                 (" - ",           COLOUR_SEPARATOR),
@@ -238,7 +230,35 @@ class SportsScoreScene(object):
         game = self._sports_data[self._sports_index % len(self._sports_data)]
         self._draw_game(game)
 
+    @Animator.KeyFrame.add(1)
+    def z_sports_logos(self, count):
+        """
+        Draw team logos onto the displayed buffer AFTER sync swaps it live.
+
+        matrix.SetImage writes to the currently-displayed (front) buffer,
+        matching how flight logos (flightlogo.py) and weather icons
+        (daysforecast.py) work.  By naming this 'z_sports_logos' it sorts
+        after 'sync' in dir(), so it always runs after the swap.
+        """
+        if not self._sports_data:
+            return
+        if self._data and not self._data_all_looped:
+            return
+
+        game = self._sports_data[self._sports_index % len(self._sports_data)]
+        away = game.get("away_abbr", "AWY")
+        home = game.get("home_abbr", "HOM")
+
+        away_logo = self._get_logo(away)
+        home_logo = self._get_logo(home)
+
+        if away_logo and home_logo:
+            from utilities.sports import SPORTS_LOGO_SIZE
+            self.matrix.SetImage(away_logo, 0, LOGO_Y_OFFSET)
+            self.matrix.SetImage(home_logo, screen.WIDTH - SPORTS_LOGO_SIZE, LOGO_Y_OFFSET)
+
     @Animator.KeyFrame.add(0)
     def reset_sports(self):
         """Called by reset_scene(). Reset per-cycle state."""
         self._sports_frame_count = 0
+        self._logo_cache.clear()
