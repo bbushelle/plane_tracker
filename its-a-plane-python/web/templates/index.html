@@ -1,26 +1,354 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Flight Tracker Web</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plane Tracker</title>
     <style>
-        body { font-family: Arial; padding: 20px; }
-        a { display: block; margin: 10px 0; font-size: 20px; }
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background: #0d0d0d;
+            color: #e0e0e0;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 15px;
+            padding: 30px 20px;
+            min-height: 100vh;
+        }
+
+        h1 {
+            font-size: 22px;
+            letter-spacing: 2px;
+            color: #ffffff;
+            margin-bottom: 6px;
+        }
+
+        .subtitle {
+            font-size: 12px;
+            color: #444;
+            margin-bottom: 36px;
+            letter-spacing: 1px;
+        }
+
+        /* ---- Cards ---- */
+        .card-grid {
+            display: grid;
+            gap: 16px;
+            max-width: 820px;
+            margin-bottom: 28px;
+        }
+
+        .card-grid-2 { grid-template-columns: 1fr 1fr; }
+        .card-grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; }
+
+        .card {
+            background: #161616;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 20px;
+        }
+
+        .card a {
+            display: block;
+            color: inherit;
+            text-decoration: none;
+            height: 100%;
+        }
+
+        .card:hover {
+            border-color: #5599ff;
+            cursor: pointer;
+        }
+
+        .card-label {
+            font-size: 11px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #555;
+            margin-bottom: 8px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            color: #e0e0e0;
+            margin-bottom: 4px;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: #555;
+        }
+
+        /* ---- Section headers ---- */
+        .section-header {
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 14px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #222;
+            max-width: 820px;
+        }
+
+        /* ---- Live flight panel ---- */
+        .live-panel {
+            background: #161616;
+            border: 1px solid #2a2a2a;
+            border-radius: 6px;
+            padding: 24px;
+            max-width: 820px;
+            margin-bottom: 28px;
+        }
+
+        .live-panel h2 {
+            font-size: 13px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #888;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #222;
+        }
+
+        .flight-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 20px;
+        }
+
+        .flight-field label {
+            display: block;
+            font-size: 11px;
+            color: #555;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+
+        .flight-field span {
+            font-size: 15px;
+            color: #e0e0e0;
+        }
+
+        .flight-field span.highlight {
+            color: #5599ff;
+        }
+
+        .rank-badge {
+            display: inline-block;
+            font-size: 11px;
+            letter-spacing: 1px;
+            color: #444;
+            border: 1px solid #2a2a2a;
+            border-radius: 3px;
+            padding: 2px 6px;
+            margin-bottom: 16px;
+        }
+
+        .empty-state {
+            color: #444;
+            font-style: italic;
+            font-size: 13px;
+            padding: 8px 0;
+        }
+
+        /* ---- Farthest list ---- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            color: #555;
+            font-size: 11px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            padding: 6px 10px;
+            border-bottom: 1px solid #222;
+        }
+
+        td {
+            padding: 10px;
+            border-bottom: 1px solid #1a1a1a;
+            font-size: 13px;
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        .rank-col { color: #444; width: 36px; }
+        .dist-col { color: #5599ff; }
+        .dir-col  { color: #888; }
     </style>
 </head>
 <body>
-    <h1>Flight Tracker Dashboard</h1>
+    <h1>PLANE TRACKER</h1>
+    <p class="subtitle" id="clock">—</p>
 
-    <a href="/closest">Closest Flight (Map)</a>
-    <a href="/closest/json">Closest Flight (Logs)</a>
+    <!-- Closest flight log -->
+    <p class="section-header">Closest Flights on Record</p>
+    <div class="live-panel" id="closest-panel">
+        <h2>Loading...</h2>
+    </div>
 
-    <br>
+    <!-- Farthest airports -->
+    <p class="section-header">Farthest Airports on Record</p>
+    <div class="live-panel">
+        <table id="farthest-table">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Airport</th>
+                    <th>Flight</th>
+                    <th>Via</th>
+                    <th>Distance</th>
+                    <th>Airline</th>
+                </tr>
+            </thead>
+            <tbody id="farthest-body">
+                <tr><td colspan="6" class="empty-state" style="padding:16px 10px;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
 
-    <a href="/farthest">Farthest Flights (Map)</a>
-    <a href="/farthest/json">Farthest Flights (Logs)</a>
+    <!-- Nav -->
+    <p class="section-header">Maps & Logs</p>
+    <div class="card-grid card-grid-4" style="margin-bottom:28px;">
+        <div class="card"><a href="/closest">
+            <div class="card-label">Map</div>
+            <div class="card-title">Closest Flight</div>
+            <div class="card-desc">Visual map of top closest</div>
+        </a></div>
+        <div class="card"><a href="/closest/json">
+            <div class="card-label">Raw JSON</div>
+            <div class="card-title">Closest Log</div>
+            <div class="card-desc">Full data for closest flights</div>
+        </a></div>
+        <div class="card"><a href="/farthest">
+            <div class="card-label">Map</div>
+            <div class="card-title">Farthest Flights</div>
+            <div class="card-desc">Visual map of top farthest</div>
+        </a></div>
+        <div class="card"><a href="/farthest/json">
+            <div class="card-label">Raw JSON</div>
+            <div class="card-title">Farthest Log</div>
+            <div class="card-desc">Full data for farthest flights</div>
+        </a></div>
+    </div>
 
-    <br>
+    <p class="section-header">Admin</p>
+    <div class="card-grid card-grid-2" style="max-width:412px;">
+        <div class="card"><a href="/settings">
+            <div class="card-label">Configure</div>
+            <div class="card-title">Settings</div>
+            <div class="card-desc">Teams, brightness, theme, logs</div>
+        </a></div>
+    </div>
 
-    <a href="/settings">Settings / Admin</a>
+    <script>
+        // ---- Clock ----
+        function updateClock() {
+            const now = new Date();
+            document.getElementById("clock").textContent = now.toLocaleDateString("en-US", {
+                weekday: "long", year: "numeric", month: "long", day: "numeric"
+            }) + "  " + now.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
+        }
+        updateClock();
+        setInterval(updateClock, 10000);
+
+        // ---- Helpers ----
+        function esc(s) {
+            return String(s ?? "—")
+                .replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+        }
+
+        function fmtDist(d) {
+            if (d == null || d === "") return "—";
+            return parseFloat(d).toFixed(1);
+        }
+
+        function ordinal(n) {
+            const s = ["th","st","nd","rd"];
+            const v = n % 100;
+            return n + (s[(v - 20) % 10] || s[v] || s[0]);
+        }
+
+        // ---- Closest flights ----
+        async function loadClosest() {
+            const panel = document.getElementById("closest-panel");
+            try {
+                const flights = await fetch("/closest/json").then(r => r.json());
+                if (!Array.isArray(flights) || flights.length === 0) {
+                    panel.innerHTML = "<h2>Closest Flights on Record</h2><p class='empty-state'>No data yet.</p>";
+                    return;
+                }
+
+                const rows = flights.map((f, i) => `
+                    <div style="margin-bottom:${i < flights.length - 1 ? "24px" : "0"}; padding-bottom:${i < flights.length - 1 ? "24px" : "0"}; border-bottom:${i < flights.length - 1 ? "1px solid #1e1e1e" : "none"}">
+                        <div class="rank-badge">${ordinal(i + 1)} closest</div>
+                        <div class="flight-row">
+                            <div class="flight-field">
+                                <label>Callsign</label>
+                                <span class="highlight">${esc(f.callsign || "—")}</span>
+                            </div>
+                            <div class="flight-field">
+                                <label>Airline</label>
+                                <span>${esc(f.airline || "—")}</span>
+                            </div>
+                            <div class="flight-field">
+                                <label>Aircraft</label>
+                                <span>${esc(f.plane || "—")}</span>
+                            </div>
+                            <div class="flight-field">
+                                <label>Route</label>
+                                <span>${esc(f.origin || "??")} → ${esc(f.destination || "??")}</span>
+                            </div>
+                            <div class="flight-field">
+                                <label>Distance</label>
+                                <span>${fmtDist(f.distance)} mi ${esc(f.direction)}</span>
+                            </div>
+                            <div class="flight-field">
+                                <label>Logged</label>
+                                <span style="font-size:12px; color:#666;">${esc(f.timestamp || "—")}</span>
+                            </div>
+                        </div>
+                    </div>
+                `).join("");
+
+                panel.innerHTML = `<h2>Closest Flights on Record</h2>${rows}`;
+            } catch (e) {
+                panel.innerHTML = "<h2>Closest Flights on Record</h2><p class='empty-state'>Failed to load.</p>";
+            }
+        }
+
+        // ---- Farthest airports ----
+        async function loadFarthest() {
+            const tbody = document.getElementById("farthest-body");
+            try {
+                const flights = await fetch("/farthest/json").then(r => r.json());
+                if (!Array.isArray(flights) || flights.length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='6' class='empty-state' style='padding:16px 10px;'>No data yet.</td></tr>";
+                    return;
+                }
+
+                tbody.innerHTML = flights.map((f, i) => `
+                    <tr>
+                        <td class="rank-col">${i + 1}</td>
+                        <td><span style="color:#5599ff;">${esc(f._airport)}</span></td>
+                        <td>${esc(f.callsign)}</td>
+                        <td style="color:#888; font-size:12px;">${esc(f.reason)}</td>
+                        <td class="dist-col">${fmtDist(f.farthest_value)} mi</td>
+                        <td style="color:#888;">${esc(f.airline || "—")}</td>
+                    </tr>
+                `).join("");
+            } catch (e) {
+                tbody.innerHTML = "<tr><td colspan='6' class='empty-state' style='padding:16px 10px;'>Failed to load.</td></tr>";
+            }
+        }
+
+        loadClosest();
+        loadFarthest();
+    </script>
 </body>
 </html>
-
