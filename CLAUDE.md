@@ -28,8 +28,9 @@ Based on [c0wsaysmoo/plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-t
 ### Sports Scores Display
 - ESPN public scoreboard API, no key required
 - `utilities/sports.py` — `SportsPoller` background thread, score-change detection
-- `scenes/sportsscore.py` — 64×32 layout: LIVE/league header, score row, period/clock
-- Team logos downloaded from ESPN CDN at startup, cached in `sports_logos/` (gitignored)
+- `scenes/sportsscore.py` — 64×32 layout: rows 0-7 LIVE + period/clock header, rows 9-20 logos + score, rows 24-28 abbreviations, rows 29-31 league
+- Team logos downloaded from ESPN CDN at startup, cached in `sports_logos/` (gitignored); cached in memory after first load per session
+- Logos rendered via `matrix.SetImage` in the `z_sports_logos` keyframe, which fires after `sync` alphabetically — matching the pattern used by flight logos and weather icons
 - Configurable delay before showing a score change (default 10s, for TV broadcast lag)
 - Planes take priority — sports only show after current scroll cycle completes
 - Display interval: 30s of sports, then back to planes
@@ -50,9 +51,18 @@ Based on [c0wsaysmoo/plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-t
   - Display Timing — score delay, display interval
   - Display Brightness — day/night brightness, night mode schedule
   - Display Theme — 11 colour pickers (clock, flight display, forecast, sports scores)
+  - Test Display — trigger mock scenes without live data (see below)
   - System Controls — Restart Pi, Shutdown Pi
   - Log Viewer — live tail of app.log and update.log
 - **Maps** — closest and farthest flight maps (HTML/PNG)
+
+### Test Display Suite
+- Web UI buttons trigger specific test scenes without needing live flights or an active game
+- Modes: `clock`, `forecast`, `flight` (mock UAL1234 ORD→LAX), `sports` (mock EDM 3–2 OTT), `cycle` (rotates clock→flight→sports every 15s)
+- Active mode shown in the UI; Reset button returns to normal operation
+- Implemented via `test_scene.json` file-based IPC — Flask writes the mode, display process reads it every 5s in `check_test_mode` KeyFrame
+- While a test mode is active, all real flight and sports polling is blocked so mock data is not overwritten
+- `test_scene.json` is gitignored
 
 ### Display Theme
 - `setup/theme.py` — reads `user_config.json` at startup, exports named colour constants
@@ -99,6 +109,7 @@ plane-tracker/
 | `.weather_cache.json` | 4-hour weather API cache |
 | `sports_logos/*.png` | Team logos downloaded from ESPN at startup |
 | `sports_pause.json` | Transient sports-pause expiry timestamp |
+| `test_scene.json` | Transient test scene mode written by web UI |
 | `close.txt` | Top-N closest flights log |
 | `farthest.txt` | Top-N farthest airports log |
 

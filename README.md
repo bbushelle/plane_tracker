@@ -7,7 +7,7 @@ A 64×32 RGB LED matrix plane tracker running on a Raspberry Pi 3 Model A+. Base
 - Tracks aircraft overhead using the OpenSky Network API and displays flight info on the LED matrix
 - Shows a 3-day weather forecast with icons
 - Displays live sports scores during active games (NHL, NFL, and any ESPN-supported sport)
-- Includes a dark-themed web dashboard accessible on the local network for viewing flight logs, maps, and adjusting settings
+- Includes a dark-themed web dashboard accessible on the local network for viewing flight logs, maps, adjusting settings, and triggering test scenes
 
 ## Hardware
 
@@ -26,7 +26,7 @@ The Flask web server runs on port 8080 and is accessible at `http://autism-pi:80
 | Farthest flights map | `/farthest` | Visual map of the top farthest flights |
 | Raw closest data | `/closest/json` | JSON log of closest flights |
 | Raw farthest data | `/farthest/json` | JSON log of farthest airports |
-| Settings | `/settings` | Configure teams, brightness, theme colours, sports pause |
+| Settings | `/settings` | Configure teams, brightness, theme colours, sports pause, test display |
 
 ## Configuration
 
@@ -49,6 +49,7 @@ See the [`docs/`](docs/) directory for full documentation.
 - **Display theme** — all colours configurable via web UI, no code changes needed
 - **Tailscale** — remote SSH access setup
 - **Web dashboard** — dark terminal-themed flight log viewer and settings panel
+- **Test display suite** — trigger mock scenes (clock, forecast, flight, sports, cycle) from the web UI without needing live data
 
 ## Documentation
 

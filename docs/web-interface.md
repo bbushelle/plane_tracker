@@ -70,6 +70,21 @@ Colour pickers for all scene elements. Changes take effect after reboot.
 | Forecast | Day name colour, low temp colour, high temp colour |
 | Sports Scores | Away score colour, home score colour |
 
+### Test Display
+
+Triggers a specific test scene on the LED matrix without needing a live flight or active game. Useful for verifying the display is working after a config change or reboot.
+
+| Button | Mode | What shows |
+|--------|------|------------|
+| Clock / Date | `clock` | Clock and date scene only (no flights, no sports) |
+| Forecast | `forecast` | 3-day weather forecast scene |
+| Mock Flight | `flight` | Simulated UAL1234 ORD→LAX flight scroll |
+| Mock Sports | `sports` | Simulated EDM 3–2 OTT live hockey score |
+| Cycle All | `cycle` | Rotates through clock, flight, and sports every 15 seconds |
+| Reset | _(clear)_ | Returns to normal operation |
+
+The active test mode is shown in the UI. Test mode blocks all real flight and sports data from updating the display until Reset is pressed.
+
 ### System
 
 - **Reboot Pi** — reboots the Raspberry Pi. All settings changes require a reboot to take effect.
@@ -96,6 +111,8 @@ Live tail of `app.log` and `update.log`, fetched from the server. Useful for deb
 | GET | `/settings/sports/pause` | Get current pause status |
 | POST | `/settings/sports/pause` | Pause sports scores (body: `{"hours": 1}`) |
 | POST | `/settings/sports/resume` | Resume sports scores immediately |
+| GET | `/test/scene` | Get current test mode (`{"mode": "flight"}` or `{"mode": null}`) |
+| POST | `/test/scene` | Set test mode (body: `{"mode": "clock"\|"flight"\|"sports"\|"forecast"\|"cycle"\|null}`) |
 | GET | `/logs/app` | Last 200 lines of app.log |
 | GET | `/logs/update` | Last 200 lines of update.log |
 | POST | `/system/restart` | Reboot the Pi |

@@ -67,9 +67,11 @@ Team logos are downloaded from the ESPN CDN at startup and cached locally in `sp
 https://a.espncdn.com/i/teamlogos/{league}/500/{abbr}.png
 ```
 
-Logos are downloaded as RGBA images, composited onto a black background, and resized to 12×12 pixels. They are rendered on the LED matrix using `matrix.SetImage()` with the away logo at the left edge (x=0) and the home logo at the right edge (x=52).
+Logos are downloaded as RGBA images, composited onto a black background, and resized to 12×12 pixels. They are rendered onto the LED matrix after each frame sync using `matrix.SetImage()` — the same technique used by flight logos and weather icons. The away logo is drawn at the left edge (x=0, y=9) and the home logo at the right edge (x=52, y=9).
 
-If logos are unavailable (first boot, network failure), the scene falls back to a text-only layout.
+Logos are cached in memory after first load so the Pi's SD card is not read every frame. The cache is cleared on scene reset.
+
+If logos are unavailable (first boot, network failure, unconfigured opponent team), the scene falls back to a text-only layout.
 
 ---
 
@@ -129,19 +131,20 @@ Home and away score colours are configurable via the **Display Theme** section o
 
 ## Matrix layout
 
-The 64×32 display is divided into three horizontal bands:
-
 ```
-Row  0-9  : "LIVE" (red, left) + league tag (grey, right)
-Row 10-20 : Score — away logo (left), score numbers (centre), home logo (right)
-Row 21-31 : Period and clock — e.g. "P2  14:23"
+Row  0-7  : "LIVE" (red, left) + period/clock e.g. "P2  14:23" (grey, right)
+Row  9-20 : Away logo (left 12×12) | score centred | home logo (right 12×12)
+Row 24-28 : Team abbreviations centred under each logo
+Row 29-31 : League name centred (e.g. "NHL")
 ```
 
 With logos present:
-- Away logo at x=0, home logo at x=52 (12×12 px each)
-- Score numbers centred in the 40px middle column, colour-coded
+- Away logo at x=0, home logo at x=52 (12×12 px each, y=9)
+- Score numbers centred in the 40px space between the logos, colour-coded per team
+- Abbreviations centred under each logo
 
 Without logos (fallback):
-- Text-only layout: `AWY X - X HOM`, all centred
+- Away abbreviation at left edge, home abbreviation at right edge
+- Score centred using a smaller font
 
 When multiple teams have simultaneous live games, the scene cycles through them every 15 seconds.

@@ -44,6 +44,7 @@ plane-tracker/
 | `its-a-plane-python/farthest.txt` | JSON log of farthest airports observed |
 | `its-a-plane-python/.weather_cache.json` | Cached weather API response (4-hour TTL) |
 | `its-a-plane-python/sports_pause.json` | Transient sports pause expiry timestamp |
+| `its-a-plane-python/test_scene.json` | Transient test scene mode (written by web UI, read by display) |
 | `its-a-plane-python/sports_logos/` | Team logos downloaded at startup from ESPN CDN |
 | `.env` | SSID names and lat/lon mappings |
 
