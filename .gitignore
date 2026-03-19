@@ -10,6 +10,7 @@ its-a-plane-python/web/static/maps/closest.html
 its-a-plane-python/web/static/maps/farthest.html
 its-a-plane-python/.weather_cache.json
 its-a-plane-python/sports_pause.json
+its-a-plane-python/test_scene.json
 
 # Local config overrides (SSID mappings, API keys — managed separately)
 local_config.py

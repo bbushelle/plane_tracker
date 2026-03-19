@@ -63,6 +63,10 @@ CONFIG_DEFAULTS = {
 # Transient sports-pause file — written here, read by the display process
 SPORTS_PAUSE_FILE = os.path.join(BASE_DIR, "sports_pause.json")
 
+# Transient test-scene file — written here, read by the display process
+TEST_SCENE_FILE = os.path.join(BASE_DIR, "test_scene.json")
+_VALID_TEST_MODES = {"clock", "flight", "sports", "forecast", "cycle"}
+
 
 def load_user_config():
     try:
@@ -310,6 +314,37 @@ def sports_pause_clear():
     except FileNotFoundError:
         pass
     return jsonify({"status": "resumed"})
+
+
+# --- Test scene controls ---
+
+@app.get("/test/scene")
+def test_scene_get():
+    try:
+        with open(TEST_SCENE_FILE) as f:
+            return jsonify(json.load(f))
+    except FileNotFoundError:
+        return jsonify({"mode": None})
+
+
+@app.post("/test/scene")
+def test_scene_set():
+    body = request.get_json(force=True, silent=True) or {}
+    mode = body.get("mode")  # None clears test mode
+
+    if mode is not None and mode not in _VALID_TEST_MODES:
+        return jsonify({"error": f"Invalid mode. Valid: {sorted(_VALID_TEST_MODES)}"}), 400
+
+    if mode is None:
+        try:
+            os.remove(TEST_SCENE_FILE)
+        except FileNotFoundError:
+            pass
+    else:
+        with open(TEST_SCENE_FILE, "w") as f:
+            json.dump({"mode": mode}, f)
+
+    return jsonify({"status": "ok", "mode": mode})
 
 
 # --- System controls ---

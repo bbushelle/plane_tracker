@@ -9,6 +9,47 @@ _SPORTS_PAUSE_FILE = os.path.join(
     "sports_pause.json",
 )
 
+# Transient file written by the web UI to activate a test scene
+_TEST_SCENE_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "test_scene.json",
+)
+
+# Mock data injected when the web UI activates a test scene
+_MOCK_FLIGHT = {
+    "callsign": "UAL1234",
+    "owner_icao": "UAL",
+    "airline": "United",
+    "plane": "B737",
+    "distance": 2.3,
+    "direction": "NW",
+    "origin": "ORD",
+    "destination": "LAX",
+    "distance_origin": 350.0,
+    "distance_destination": 1450.0,
+    "time_estimated_arrival": None,
+    "time_scheduled_arrival": None,
+    "time_real_departure": None,
+    "time_scheduled_departure": None,
+}
+
+_MOCK_GAME = {
+    "home_abbr": "EDM",
+    "away_abbr": "OTT",
+    "home_score": 3,
+    "away_score": 2,
+    "period": 2,
+    "clock": "14:23",
+    "status": "in",
+    "status_detail": "2nd Period",
+    "game_id": "mock_test",
+    "sport": "hockey",
+    "league": "nhl",
+}
+
+_TEST_CYCLE_PHASES = ["clock", "flight", "sports"]
+_TEST_CYCLE_SECONDS = 15  # seconds per phase
+
 
 def _sports_is_paused() -> bool:
     try:
@@ -166,6 +207,11 @@ class Display(
         # None means no score change is queued.
         self._sports_score_show_at = None
 
+        # Test scene state — controlled by check_test_mode KeyFrame
+        self._test_mode = None          # current mode or None
+        self._test_cycle_phase = -1     # cycles through _TEST_CYCLE_PHASES
+        self._test_cycle_switch_at = None
+
         # Initalise animator and scenes
         super().__init__()
 
@@ -189,6 +235,8 @@ class Display(
     @Animator.KeyFrame.add(int(frames.PER_SECOND * 60))
     def poll_sports_data(self, count):
         """Periodically re-fetch live game data from ESPN."""
+        if self._test_mode is not None:
+            return
         if self.sports_poller is None:
             return
         # Only fetch when not already processing
@@ -220,6 +268,10 @@ class Display(
         * After SPORTS_DISPLAY_INTERVAL seconds of sports, clear self._sports_data
           so the plane/clock scenes reclaim the display.
         """
+        # Test mode owns _sports_data — skip normal polling logic
+        if self._test_mode is not None:
+            return
+
         if self.sports_poller is None:
             self._sports_data = []
             return
@@ -277,6 +329,8 @@ class Display(
 
     @Animator.KeyFrame.add(frames.PER_SECOND * 5)
     def check_for_loaded_data(self, count):
+        if self._test_mode is not None:
+            return
         if self.overhead.new_data:
             # Check if there's data
             there_is_data = len(self._data) > 0 or not self.overhead.data_is_empty
@@ -314,6 +368,8 @@ class Display(
 
     @Animator.KeyFrame.add(frames.PER_SECOND * 30)
     def grab_new_data(self, count):
+        if self._test_mode is not None:
+            return
         # Only grab data if we're not already searching
         # for planes, or if there's new data available
         # which hasn't been displayed.
@@ -327,6 +383,78 @@ class Display(
             self._data_all_looped or len(self._data) <= 1
         ):
             self.overhead.grab_data()
+
+    # ------------------------------------------------------------------
+    # Test scene management
+    # ------------------------------------------------------------------
+
+    @Animator.KeyFrame.add(int(frames.PER_SECOND * 5))
+    def check_test_mode(self, count):
+        """Read test_scene.json and inject mock data as requested."""
+        try:
+            with open(_TEST_SCENE_FILE) as f:
+                data = _json.load(f)
+            new_mode = data.get("mode")
+        except FileNotFoundError:
+            new_mode = None
+        except Exception:
+            new_mode = None
+
+        if new_mode == self._test_mode and new_mode != "cycle":
+            return  # Nothing changed
+
+        prev_mode = self._test_mode
+        self._test_mode = new_mode
+
+        if new_mode is None:
+            # Restore normal operation — clear injected data, let pollers refill
+            self._data = []
+            self._sports_data = []
+            self._test_cycle_phase = -1
+            self._test_cycle_switch_at = None
+            self.reset_scene()
+        else:
+            self._apply_test_mode()
+
+    def _apply_test_mode(self):
+        mode = self._test_mode
+        if mode == "clock" or mode == "forecast":
+            self._data = []
+            self._sports_data = []
+            self.reset_scene()
+        elif mode == "flight":
+            self._sports_data = []
+            self._data = [_MOCK_FLIGHT]
+            self._data_index = 0
+            self._data_all_looped = False
+            self.reset_scene()
+        elif mode == "sports":
+            self._data = []
+            self._sports_data = [_MOCK_GAME]
+            self._sports_display_frames = 0
+            self.reset_scene()
+        elif mode == "cycle":
+            self._advance_test_cycle()
+
+    def _advance_test_cycle(self):
+        now = datetime.now()
+        if self._test_cycle_switch_at is None or now >= self._test_cycle_switch_at:
+            self._test_cycle_phase = (self._test_cycle_phase + 1) % len(_TEST_CYCLE_PHASES)
+            self._test_cycle_switch_at = now + timedelta(seconds=_TEST_CYCLE_SECONDS)
+            phase = _TEST_CYCLE_PHASES[self._test_cycle_phase]
+            if phase == "clock":
+                self._data = []
+                self._sports_data = []
+            elif phase == "flight":
+                self._sports_data = []
+                self._data = [_MOCK_FLIGHT]
+                self._data_index = 0
+                self._data_all_looped = False
+            elif phase == "sports":
+                self._data = []
+                self._sports_data = [_MOCK_GAME]
+                self._sports_display_frames = 0
+            self.reset_scene()
 
     def run(self):
         try:

@@ -441,6 +441,24 @@
         <div class="status" id="theme-status"></div>
     </section>
 
+    <!-- Test Display -->
+    <section>
+        <h2>Test Display</h2>
+        <p style="font-size:12px; color:#555; margin-bottom:18px;">
+            Force the LED matrix to show a specific scene using mock data. The display returns to normal automatically when you click Reset, or after a reboot.
+        </p>
+        <div style="display:flex; flex-wrap:wrap; gap:10px; margin-bottom:14px;">
+            <button class="btn-primary" onclick="testScene('clock')">Clock / Date</button>
+            <button class="btn-primary" onclick="testScene('forecast')">Forecast</button>
+            <button class="btn-primary" onclick="testScene('flight')">Mock Flight</button>
+            <button class="btn-primary" onclick="testScene('sports')">Mock Sports</button>
+            <button class="btn-primary" onclick="testScene('cycle')">Cycle All</button>
+            <button class="btn-warning" onclick="testScene(null)">Reset (Normal)</button>
+        </div>
+        <div class="status" id="test-status"></div>
+        <div id="test-current" style="font-size:12px; color:#555; margin-top:10px;"></div>
+    </section>
+
     <!-- System Controls -->
     <section>
         <h2>System Controls</h2>
@@ -785,10 +803,50 @@
 
         document.getElementById("log-select").addEventListener("change", loadLog);
 
+        // --- Test display ---
+
+        const TEST_LABELS = {
+            clock: "Clock / Date",
+            forecast: "Forecast",
+            flight: "Mock Flight",
+            sports: "Mock Sports",
+            cycle: "Cycle All",
+        };
+
+        async function testScene(mode) {
+            try {
+                await apiFetch("/test/scene", "POST", { mode });
+                if (mode === null) {
+                    setStatus("test-status", "Returned to normal operation.", "ok");
+                    document.getElementById("test-current").textContent = "";
+                } else {
+                    const label = TEST_LABELS[mode] || mode;
+                    setStatus("test-status", `Active: ${label}. Display updates within 5 seconds.`, "ok");
+                    document.getElementById("test-current").textContent =
+                        `Active test mode: ${label}${mode === "cycle" ? " (15s per scene)" : ""}`;
+                }
+            } catch (e) {
+                setStatus("test-status", "Error: " + e.message, "err");
+            }
+        }
+
+        async function loadTestStatus() {
+            try {
+                const data = await apiFetch("/test/scene");
+                const mode = data.mode;
+                if (mode) {
+                    const label = TEST_LABELS[mode] || mode;
+                    document.getElementById("test-current").textContent =
+                        `Active test mode: ${label}${mode === "cycle" ? " (15s per scene)" : ""}`;
+                }
+            } catch (_) {}
+        }
+
         // Boot
         loadConfig();
         loadLog();
         loadPauseStatus();
+        loadTestStatus();
     </script>
 </body>
 </html>
