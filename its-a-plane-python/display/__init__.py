@@ -419,6 +419,11 @@ class Display(
                 self._sports_data = []
                 self._test_cycle_phase = -1
                 self._test_cycle_switch_at = None
+                # Force forecast redraw — when clock/forecast test modes are active
+                # _redraw_forecast stays False (no data guard fires), so without this
+                # the forecast skips its redraw check on return since _last_hour
+                # hasn't changed.
+                self._redraw_forecast = True
                 self.reset_scene()
         elif new_mode == "cycle":
             self._advance_test_cycle()
