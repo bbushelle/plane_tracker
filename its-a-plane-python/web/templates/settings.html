@@ -243,6 +243,16 @@
         .status.ok   { color: #44cc77; }
         .status.err  { color: #dd4444; }
         .status.info { color: #5599ff; }
+
+        .colour-input {
+            width: 100%;
+            height: 38px;
+            padding: 2px;
+            background: #0d0d0d;
+            border: 1px solid #333;
+            border-radius: 4px;
+            cursor: pointer;
+        }
     </style>
 </head>
 <body>
@@ -365,21 +375,69 @@
     <!-- Display Theme -->
     <section>
         <h2>Display Theme</h2>
-        <p style="font-size:12px; color:#555; margin-bottom:18px;">Sports score colours only. Changes take effect after restarting the Pi.</p>
-        <div class="delays-form" style="grid-template-columns: 1fr 1fr auto;">
+        <p style="font-size:12px; color:#555; margin-bottom:18px;">Changes take effect after restarting the Pi.</p>
+
+        <p style="font-size:11px; color:#666; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px;">Clock</p>
+        <div class="delays-form" style="grid-template-columns:1fr 1fr; margin-bottom:20px;">
             <div>
-                <label for="sports-away-colour">Away Score Colour</label>
-                <input type="color" id="sports-away-colour" value="#28b7f6" style="width:100%; height:38px; padding:2px; background:#0d0d0d; border:1px solid #333; border-radius:4px; cursor:pointer;">
+                <label for="clock-day-colour">Day</label>
+                <input type="color" id="clock-day-colour" value="#fea727" class="colour-input">
             </div>
             <div>
-                <label for="sports-home-colour">Home Score Colour</label>
-                <input type="color" id="sports-home-colour" value="#fea727" style="width:100%; height:38px; padding:2px; background:#0d0d0d; border:1px solid #333; border-radius:4px; cursor:pointer;">
-            </div>
-            <div>
-                <label>&nbsp;</label>
-                <button class="btn-primary" onclick="saveTheme()">Save</button>
+                <label for="clock-night-colour">Night</label>
+                <input type="color" id="clock-night-colour" value="#28b7f6" class="colour-input">
             </div>
         </div>
+
+        <p style="font-size:11px; color:#666; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px;">Flight Display</p>
+        <div class="delays-form" style="grid-template-columns:1fr 1fr 1fr 1fr; margin-bottom:20px;">
+            <div>
+                <label for="flight-alpha-colour">Number Letters</label>
+                <input type="color" id="flight-alpha-colour" value="#aa46bc" class="colour-input">
+            </div>
+            <div>
+                <label for="flight-numeric-colour">Number Digits</label>
+                <input type="color" id="flight-numeric-colour" value="#fea727" class="colour-input">
+            </div>
+            <div>
+                <label for="plane-colour">Plane Type</label>
+                <input type="color" id="plane-colour" value="#42a4f4" class="colour-input">
+            </div>
+            <div>
+                <label for="plane-dist-colour">Distance</label>
+                <input type="color" id="plane-dist-colour" value="#ec417b" class="colour-input">
+            </div>
+        </div>
+
+        <p style="font-size:11px; color:#666; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px;">Forecast</p>
+        <div class="delays-form" style="grid-template-columns:1fr 1fr 1fr; margin-bottom:20px;">
+            <div>
+                <label for="forecast-day-colour">Day Name</label>
+                <input type="color" id="forecast-day-colour" value="#ec417b" class="colour-input">
+            </div>
+            <div>
+                <label for="forecast-min-colour">Low Temp</label>
+                <input type="color" id="forecast-min-colour" value="#42a4f4" class="colour-input">
+            </div>
+            <div>
+                <label for="forecast-max-colour">High Temp</label>
+                <input type="color" id="forecast-max-colour" value="#ff7142" class="colour-input">
+            </div>
+        </div>
+
+        <p style="font-size:11px; color:#666; letter-spacing:1px; text-transform:uppercase; margin-bottom:10px;">Sports Scores</p>
+        <div class="delays-form" style="grid-template-columns:1fr 1fr; margin-bottom:20px;">
+            <div>
+                <label for="sports-away-colour">Away Score</label>
+                <input type="color" id="sports-away-colour" value="#28b7f6" class="colour-input">
+            </div>
+            <div>
+                <label for="sports-home-colour">Home Score</label>
+                <input type="color" id="sports-home-colour" value="#fea727" class="colour-input">
+            </div>
+        </div>
+
+        <button class="btn-primary" onclick="saveTheme()">Save All Colours</button>
         <div class="status" id="theme-status"></div>
     </section>
 
@@ -477,8 +535,17 @@
                 document.getElementById("night-end").value = cfg.night_end;
                 updateNightOptions();
                 // Theme colours
-                document.getElementById("sports-away-colour").value = cfg.sports_away_colour;
-                document.getElementById("sports-home-colour").value = cfg.sports_home_colour;
+                document.getElementById("clock-day-colour").value       = cfg.clock_day_colour;
+                document.getElementById("clock-night-colour").value     = cfg.clock_night_colour;
+                document.getElementById("flight-alpha-colour").value    = cfg.flight_num_alpha_colour;
+                document.getElementById("flight-numeric-colour").value  = cfg.flight_num_numeric_colour;
+                document.getElementById("plane-colour").value           = cfg.plane_colour;
+                document.getElementById("plane-dist-colour").value      = cfg.plane_distance_colour;
+                document.getElementById("forecast-day-colour").value    = cfg.forecast_day_colour;
+                document.getElementById("forecast-min-colour").value    = cfg.forecast_min_temp_colour;
+                document.getElementById("forecast-max-colour").value    = cfg.forecast_max_temp_colour;
+                document.getElementById("sports-away-colour").value     = cfg.sports_away_colour;
+                document.getElementById("sports-home-colour").value     = cfg.sports_home_colour;
             } catch (e) {
                 setStatus("teams-status", "Failed to load config: " + e.message, "err");
             }
@@ -650,12 +717,19 @@
         // --- Theme ---
 
         async function saveTheme() {
-            const homeColour = document.getElementById("sports-home-colour").value;
-            const awayColour = document.getElementById("sports-away-colour").value;
             try {
                 await apiFetch("/settings/theme", "POST", {
-                    sports_home_colour: homeColour,
-                    sports_away_colour: awayColour,
+                    clock_day_colour:          document.getElementById("clock-day-colour").value,
+                    clock_night_colour:        document.getElementById("clock-night-colour").value,
+                    flight_num_alpha_colour:   document.getElementById("flight-alpha-colour").value,
+                    flight_num_numeric_colour: document.getElementById("flight-numeric-colour").value,
+                    plane_colour:              document.getElementById("plane-colour").value,
+                    plane_distance_colour:     document.getElementById("plane-dist-colour").value,
+                    forecast_day_colour:       document.getElementById("forecast-day-colour").value,
+                    forecast_min_temp_colour:  document.getElementById("forecast-min-colour").value,
+                    forecast_max_temp_colour:  document.getElementById("forecast-max-colour").value,
+                    sports_home_colour:        document.getElementById("sports-home-colour").value,
+                    sports_away_colour:        document.getElementById("sports-away-colour").value,
                 });
                 setStatus("theme-status", "Saved. Restart Pi to apply.", "ok");
             } catch (e) {

@@ -1,5 +1,5 @@
 from utilities.animator import Animator
-from setup import colours, fonts, screen
+from setup import colours, fonts, screen, theme
 
 from rgbmatrix import graphics
 
@@ -8,8 +8,8 @@ FLIGHT_NO_DISTANCE_FROM_TOP = 24
 FLIGHT_NO_TEXT_HEIGHT = 8  # based on font size
 FLIGHT_NO_FONT = fonts.small
 
-FLIGHT_NUMBER_ALPHA_COLOUR = colours.LIGHT_PURPLE
-FLIGHT_NUMBER_NUMERIC_COLOUR = colours.LIGHT_ORANGE
+FLIGHT_NUMBER_ALPHA_COLOUR = theme.FLIGHT_NUM_ALPHA
+FLIGHT_NUMBER_NUMERIC_COLOUR = theme.FLIGHT_NUM_NUMERIC
 
 DATA_INDEX_POSITION = (52, 24)
 DATA_INDEX_TEXT_HEIGHT = 7

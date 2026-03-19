@@ -1,11 +1,11 @@
 from rgbmatrix import graphics
 from utilities.animator import Animator
-from setup import colours, fonts, screen
+from setup import colours, fonts, screen, theme
 from config import DISTANCE_UNITS
 
 # Setup
-PLANE_COLOUR = colours.LIGHT_MID_BLUE
-PLANE_DISTANCE_COLOUR = colours.LIGHT_PINK
+PLANE_COLOUR = theme.PLANE
+PLANE_DISTANCE_COLOUR = theme.PLANE_DIST
 PLANE_DISTANCE_FROM_TOP = 31
 PLANE_TEXT_HEIGHT = 6
 PLANE_FONT = fonts.small

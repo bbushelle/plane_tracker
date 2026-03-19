@@ -6,15 +6,15 @@ from utilities.animator import Animator
 
 # Icons live in its-a-plane-python/icons/, one level up from scenes/
 _ICONS_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "icons")
-from setup import colours, fonts, frames, screen
+from setup import colours, fonts, frames, screen, theme
 from utilities.temperature import grab_forecast
 from config import NIGHT_START, NIGHT_END
 from rgbmatrix import graphics
 
 # Setup
-DAY_COLOUR = colours.LIGHT_PINK
-MIN_T_COLOUR = colours.LIGHT_MID_BLUE
-MAX_T_COLOUR = colours.LIGHT_DARK_ORANGE
+DAY_COLOUR = theme.FORECAST_DAY
+MIN_T_COLOUR = theme.FORECAST_MIN_T
+MAX_T_COLOUR = theme.FORECAST_MAX_T
 TEXT_FONT = fonts.extrasmall
 FONT_HEIGHT = 5
 DISTANCE_FROM_TOP = 32

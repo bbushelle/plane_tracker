@@ -41,9 +41,23 @@ CONFIG_DEFAULTS = {
     "night_brightness": False,
     "night_start": "22:00",
     "night_end": "06:00",
-    # Sports score colours (hex strings matching colours.LIGHT_ORANGE / LIGHT_BLUE)
-    "sports_home_colour": "#fea727",
-    "sports_away_colour": "#28b7f6",
+    # Display theme colours — all #RRGGBB hex strings
+    # Clock
+    "clock_day_colour":          "#fea727",  # colours.LIGHT_ORANGE
+    "clock_night_colour":        "#28b7f6",  # colours.LIGHT_BLUE
+    # Flight details (scrolling flight number)
+    "flight_num_alpha_colour":   "#aa46bc",  # colours.LIGHT_PURPLE
+    "flight_num_numeric_colour": "#fea727",  # colours.LIGHT_ORANGE
+    # Plane details (plane type + distance row)
+    "plane_colour":              "#42a4f4",  # colours.LIGHT_MID_BLUE
+    "plane_distance_colour":     "#ec417b",  # colours.LIGHT_PINK
+    # Forecast (day name, low/high temps)
+    "forecast_day_colour":       "#ec417b",  # colours.LIGHT_PINK
+    "forecast_min_temp_colour":  "#42a4f4",  # colours.LIGHT_MID_BLUE
+    "forecast_max_temp_colour":  "#ff7142",  # colours.LIGHT_DARK_ORANGE
+    # Sports scores
+    "sports_home_colour":        "#fea727",  # colours.LIGHT_ORANGE
+    "sports_away_colour":        "#28b7f6",  # colours.LIGHT_BLUE
 }
 
 # Transient sports-pause file — written here, read by the display process
@@ -229,6 +243,15 @@ def settings_brightness():
 
 # --- Display theme (sports score colours) ---
 
+_THEME_KEYS = [
+    "clock_day_colour", "clock_night_colour",
+    "flight_num_alpha_colour", "flight_num_numeric_colour",
+    "plane_colour", "plane_distance_colour",
+    "forecast_day_colour", "forecast_min_temp_colour", "forecast_max_temp_colour",
+    "sports_home_colour", "sports_away_colour",
+]
+
+
 @app.post("/settings/theme")
 def settings_theme():
     body = request.get_json(force=True, silent=True) or {}
@@ -237,15 +260,16 @@ def settings_theme():
         return isinstance(s, str) and len(s) == 7 and s.startswith("#") and \
                all(c in "0123456789abcdefABCDEF" for c in s[1:])
 
-    home_colour = body.get("sports_home_colour", "").strip()
-    away_colour = body.get("sports_away_colour", "").strip()
-
-    if not valid_hex(home_colour) or not valid_hex(away_colour):
-        return jsonify({"error": "Colours must be in #RRGGBB format"}), 400
+    updates = {}
+    for key in _THEME_KEYS:
+        val = body.get(key, "").strip()
+        if val and not valid_hex(val):
+            return jsonify({"error": f"Invalid colour for {key}: must be #RRGGBB"}), 400
+        if val:
+            updates[key] = val
 
     user_cfg = load_user_config()
-    user_cfg["sports_home_colour"] = home_colour
-    user_cfg["sports_away_colour"] = away_colour
+    user_cfg.update(updates)
     save_user_config(user_cfg)
     return jsonify({"status": "ok"})
 

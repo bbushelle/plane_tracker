@@ -1,7 +1,7 @@
 from datetime import datetime
 from utilities.temperature import grab_forecast
 from utilities.animator import Animator
-from setup import colours, fonts, frames
+from setup import colours, fonts, frames, theme
 from rgbmatrix import graphics
 import logging
 from config import CLOCK_FORMAT, NIGHT_END, NIGHT_START
@@ -12,8 +12,8 @@ from config import CLOCK_FORMAT, NIGHT_END, NIGHT_START
 # Setup
 CLOCK_FONT = fonts.large_bold
 CLOCK_POSITION = (0, 11)
-DAY_COLOUR = colours.LIGHT_ORANGE
-NIGHT_COLOUR = colours.LIGHT_BLUE
+DAY_COLOUR = theme.CLOCK_DAY
+NIGHT_COLOUR = theme.CLOCK_NIGHT
 
 
 # Convert NIGHT_START and NIGHT_END to datetime objects 

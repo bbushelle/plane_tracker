@@ -17,7 +17,7 @@ leaving the rest of the display pipeline unaffected.
 import logging
 import os
 from utilities.animator import Animator
-from setup import colours, fonts, frames, screen
+from setup import colours, fonts, frames, screen, theme
 from rgbmatrix import graphics
 
 logger = logging.getLogger(__name__)
@@ -33,50 +33,15 @@ PERIOD_Y = 30         # baseline of the period/clock row
 
 # Colours
 COLOUR_LIVE_LABEL = colours.RED
-COLOUR_LEAGUE = colours.GREY
-COLOUR_HOME_SCORE = colours.LIGHT_ORANGE
-COLOUR_AWAY_SCORE = colours.LIGHT_BLUE
-COLOUR_ABBR = colours.WHITE
-COLOUR_SEPARATOR = colours.GREY
-COLOUR_PERIOD = colours.LIGHT_GREY
+COLOUR_LEAGUE     = colours.GREY
+COLOUR_HOME_SCORE = theme.SPORTS_HOME
+COLOUR_AWAY_SCORE = theme.SPORTS_AWAY
+COLOUR_ABBR       = colours.WHITE
+COLOUR_SEPARATOR  = colours.GREY
+COLOUR_PERIOD     = colours.LIGHT_GREY
 
 # Vertical offset for logos on the canvas (pixels from top)
 LOGO_Y_OFFSET = 8
-
-# Default hex values matching the module-level colour constants above
-_DEFAULT_HOME_HEX = "#fea727"  # colours.LIGHT_ORANGE (254, 167, 39)
-_DEFAULT_AWAY_HEX = "#28b7f6"  # colours.LIGHT_BLUE  (40, 183, 246)
-
-_USER_CONFIG_PATH = os.path.join(
-    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
-    "web", "user_config.json",
-)
-
-
-def _hex_to_colour(hex_val: str, default):
-    """Convert a #RRGGBB string to a graphics.Color, returning default on failure."""
-    try:
-        from rgbmatrix import graphics
-        r = int(hex_val[1:3], 16)
-        g = int(hex_val[3:5], 16)
-        b = int(hex_val[5:7], 16)
-        return graphics.Color(r, g, b)
-    except Exception:
-        return default
-
-
-def _load_sports_colour(key: str, default):
-    """Load a colour override from user_config.json; return default if absent."""
-    try:
-        import json
-        with open(_USER_CONFIG_PATH) as f:
-            cfg = json.load(f)
-        hex_val = cfg.get(key, "")
-        if hex_val and len(hex_val) == 7 and hex_val.startswith("#"):
-            return _hex_to_colour(hex_val, default)
-    except Exception as exc:
-        logger.debug("Could not load colour %s: %s", key, exc)
-    return default
 
 
 def _load_sport_logo(abbr: str):
@@ -133,9 +98,6 @@ class SportsScoreScene(object):
         self._sports_index: int = 0
         self._sports_frame_count: int = 0
         self._last_drawn_game_id: str = ""
-        # Colour overrides from user_config.json (fall back to module defaults)
-        self._colour_home_score = _load_sports_colour("sports_home_colour", COLOUR_HOME_SCORE)
-        self._colour_away_score = _load_sports_colour("sports_away_colour", COLOUR_AWAY_SCORE)
 
     # ------------------------------------------------------------------
     # Internal helpers
@@ -187,9 +149,9 @@ class SportsScoreScene(object):
 
             # Score: colour-coded numbers only, centred in the middle column
             score_segments = [
-                (str(away_score), self._colour_away_score),
+                (str(away_score), COLOUR_AWAY_SCORE),
                 (" - ",           COLOUR_SEPARATOR),
-                (str(home_score), self._colour_home_score),
+                (str(home_score), COLOUR_HOME_SCORE),
             ]
             full_score = "".join(s for s, _ in score_segments)
             score_w = _text_width(SCORE_FONT, full_score)
@@ -206,9 +168,9 @@ class SportsScoreScene(object):
             segments = [
                 (away,            COLOUR_ABBR),
                 (" ",             COLOUR_SEPARATOR),
-                (str(away_score), self._colour_away_score),
+                (str(away_score), COLOUR_AWAY_SCORE),
                 (separator,       COLOUR_SEPARATOR),
-                (str(home_score), self._colour_home_score),
+                (str(home_score), COLOUR_HOME_SCORE),
                 (" ",             COLOUR_SEPARATOR),
                 (home,            COLOUR_ABBR),
             ]
