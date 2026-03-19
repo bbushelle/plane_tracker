@@ -98,10 +98,10 @@ class DateScene(object):
         now = datetime.now()
         current_date = now.strftime("%b %d")
 
-        # Flag for forced redraw if new data arrived
-        if len(self._data):
+        # Yield to sports display or plane scroll
+        if self._sports_data or len(self._data):
             self._redraw_date = True
-            return 
+            return
 
         # Get moon phase
         moon_phase_value = self.moonphase()

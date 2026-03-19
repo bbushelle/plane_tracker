@@ -36,10 +36,10 @@ class TemperatureScene(object):
         now = datetime.now().replace(microsecond=0).time()
         if now == NIGHT_START_TIME.time() or now == NIGHT_END_TIME.time():
             self._redraw_temp = True
-            return  
+            return
 
-        # Ensure redraw when there's new data
-        if len(self._data):
+        # Yield to sports display or plane scroll
+        if self._sports_data or len(self._data):
             self._redraw_temp = True
             return
 

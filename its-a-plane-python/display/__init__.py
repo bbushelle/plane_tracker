@@ -224,6 +224,8 @@ class Display(
             self._sports_data = []
             return
 
+        _was_active = bool(self._sports_data)
+
         # Consume new data from poller
         if self.sports_poller.new_data:
             fresh_games = self.sports_poller.data  # clears new_data flag
@@ -248,8 +250,6 @@ class Display(
             self._sports_score_show_at = None
 
         # Fire delayed score-change display once the delay has elapsed.
-        # Only reset the scene if planes aren't mid-scroll — sports_score will
-        # start drawing naturally on the next completed plane cycle if we skip this.
         if self._sports_score_show_at is not None and datetime.now() >= self._sports_score_show_at:
             self._sports_score_show_at = None
             if not self._data or self._data_all_looped:
@@ -262,6 +262,12 @@ class Display(
                 # Time is up; stop showing sports until next data arrives
                 self._sports_data = []
                 self._sports_display_frames = 0
+
+        # On any sports active/inactive transition, force a clean canvas reset
+        # so neither scene bleeds into the other through the double buffer.
+        _now_active = bool(self._sports_data)
+        if _was_active != _now_active:
+            self.reset_scene()
 
     @Animator.KeyFrame.add(0)
     def clear_screen(self):

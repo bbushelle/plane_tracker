@@ -42,9 +42,8 @@ class DaysForecastScene(object):
             return
 
         # --- SCENE SWITCH HANDLING ---
-        # If the parent system sets self._data when switching scenes:
-        # redraw immediately but DO NOT trigger a fetch
-        if len(self._data):
+        # Yield to sports display or plane scroll; mark for redraw on return
+        if self._sports_data or len(self._data):
             self._redraw_forecast = True
             return
 
