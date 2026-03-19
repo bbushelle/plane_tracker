@@ -35,7 +35,7 @@ _MOCK_FLIGHT = {
 
 _MOCK_GAME = {
     "home_abbr": "EDM",
-    "away_abbr": "OTT",
+    "away_abbr": "STL",
     "home_score": 3,
     "away_score": 2,
     "period": 2,
@@ -286,6 +286,16 @@ class Display(
             if fresh_games and not _sports_is_paused():
                 self._sports_data = fresh_games
                 self._sports_display_frames = 0  # restart display timer
+
+                # Download logos for any opponent teams whose logos aren't cached yet
+                from utilities.sports import download_team_logos
+                from threading import Thread
+                opponent_teams = [
+                    {"abbreviation": g[abbr_key], "league": g.get("league", "")}
+                    for g in fresh_games
+                    for abbr_key in ("home_abbr", "away_abbr")
+                ]
+                Thread(target=download_team_logos, args=(opponent_teams,), daemon=True).start()
 
                 # On a score change, queue a delayed display instead of
                 # switching immediately — gives the TV broadcast time to catch up

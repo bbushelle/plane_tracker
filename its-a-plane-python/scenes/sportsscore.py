@@ -174,6 +174,11 @@ class SportsScoreScene(object):
             hx   = home_logo_x + max(0, (SPORTS_LOGO_SIZE - hw_a) // 2)
             graphics.DrawText(self.canvas, LABEL_FONT, hx, ABBR_Y, COLOUR_ABBR, home)
 
+            # Draw logos into the canvas via matrix.SetImage — same pattern as
+            # flightlogo.py and daysforecast.py (writes to back buffer before sync)
+            self.matrix.SetImage(away_logo, 0, LOGO_Y_OFFSET)
+            self.matrix.SetImage(home_logo, home_logo_x, LOGO_Y_OFFSET)
+
         else:
             # ---- Text-only fallback ----
             graphics.DrawText(
@@ -229,33 +234,6 @@ class SportsScoreScene(object):
 
         game = self._sports_data[self._sports_index % len(self._sports_data)]
         self._draw_game(game)
-
-    @Animator.KeyFrame.add(1)
-    def z_sports_logos(self, count):
-        """
-        Draw team logos onto the displayed buffer AFTER sync swaps it live.
-
-        matrix.SetImage writes to the currently-displayed (front) buffer,
-        matching how flight logos (flightlogo.py) and weather icons
-        (daysforecast.py) work.  By naming this 'z_sports_logos' it sorts
-        after 'sync' in dir(), so it always runs after the swap.
-        """
-        if not self._sports_data:
-            return
-        if self._data and not self._data_all_looped:
-            return
-
-        game = self._sports_data[self._sports_index % len(self._sports_data)]
-        away = game.get("away_abbr", "AWY")
-        home = game.get("home_abbr", "HOM")
-
-        away_logo = self._get_logo(away)
-        home_logo = self._get_logo(home)
-
-        if away_logo and home_logo:
-            from utilities.sports import SPORTS_LOGO_SIZE
-            self.matrix.SetImage(away_logo, 0, LOGO_Y_OFFSET)
-            self.matrix.SetImage(home_logo, screen.WIDTH - SPORTS_LOGO_SIZE, LOGO_Y_OFFSET)
 
     @Animator.KeyFrame.add(0)
     def reset_sports(self):
