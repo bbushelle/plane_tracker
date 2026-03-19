@@ -25,6 +25,10 @@ found — pulls them and restarts the application automatically.
    picks up the updated code. Application output continues to flow into
    `logs/app.log`.
 
+> **Note:** The web UI's "Reboot Pi" button performs a full `sudo reboot`, which
+> is the recommended way to apply new code after a manual pull. The auto-update
+> script uses `nohup` restart (not full reboot) since it runs unattended at 3 AM.
+
 The script is **idempotent** — running it multiple times with no new commits
 is harmless.
 

@@ -1,50 +1,106 @@
 # Plane Tracker
 
 ## Overview
-This is based off of this project but with some modifications - https://github.com/c0wsaysmoo/plane-tracker-rgb-pi?tab=readme-ov-file
+Based on [c0wsaysmoo/plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-tracker-rgb-pi) with significant modifications. Tracks overhead flights via FlightRadar24, displays live sports scores, and shows weather/forecast data on a 64×32 RGB LED matrix.
 
 ## Current Setup
-- Hardware: Raspberry Pi 3 Model A+, hostname `autism-pi`
-- Running the c0wsaysmoo plane-tracker project
-- Primary config file: `/home/tyler/its-a-plane-python/config.py`
-- SSH credentials are stored in Claude memory (not in this repo)
+- **Hardware:** Raspberry Pi 3 Model A+, hostname `autism-pi`, user `tyler`
+- **Repo path on Pi:** `/home/tyler/plane-tracker/`
+- **Entry point:** `/home/tyler/plane-tracker/its-a-plane-python/its-a-plane.py`
+- **Config file:** `/home/tyler/plane-tracker/its-a-plane-python/config.py`
+- **SSH credentials:** stored in Claude memory (not in this repo)
+- **Web interface:** Flask on port 8080, started as a subprocess of `its-a-plane.py`
 
-## Project Goals & Specifications
+## What's Been Built
 
-### 1. Git Auto-Update (Nightly Pull)
-- The pi should check for upstream changes before pulling (don't pull if nothing to update)
-- If changes are found, pull and restart affected services
-- Log all results (success, failure, what changed)
-- Configured via a cron job with an easily adjustable schedule
-- Script should be robust: handle conflicts, log errors, and avoid breaking a running system silently
+### Git Auto-Update (Nightly Pull)
+- `scripts/update.sh` — fetches, compares SHAs, logs incoming commits, pulls, restarts app
+- `scripts/install-cron.sh` — installs a 3 AM daily cron job; schedule is easily adjusted
+- `scripts/setup-pi.sh` — idempotent one-time migration script for the Pi
 
-### 2. Location (LOCATION_HOME)
-- The pi moves between 3 different SSIDs
-- Location is determined by current SSID — each SSID maps to a lat/lon pair
-- SSID names, passwords, and lat/lon mappings will be provided and stored in a config file (not hardcoded)
-- LOCATION_HOME should be set automatically at startup/network change based on detected SSID
+### Location Detection
+- `utilities/location.py` reads `SSID_LOCATIONS` from `.env` via python-dotenv
+- 3-mile bounding box calculated automatically from lat/lon
+- `JOURNEY_CODE_SELECTED` (home airport) also set per SSID
+- Three known SSIDs: milloosh → ORD, Komquat → GRB, boosh-5 → ATW
+- Falls back to hardcoded defaults if SSID not found
 
-### 3. Zone (ZONE_HOME)
-- Automatically calculated as a 3-mile radius around LOCATION_HOME
-- Should update whenever LOCATION_HOME changes
+### Sports Scores Display
+- ESPN public scoreboard API, no key required
+- `utilities/sports.py` — `SportsPoller` background thread, score-change detection
+- `scenes/sportsscore.py` — 64×32 layout: LIVE/league header, score row, period/clock
+- Team logos downloaded from ESPN CDN at startup, cached in `sports_logos/` (gitignored)
+- Configurable delay before showing a score change (default 10s, for TV broadcast lag)
+- Planes take priority — sports only show after current scroll cycle completes
+- Display interval: 30s of sports, then back to planes
+- Sports pause: web UI button suppresses scores for 1 hour via `sports_pause.json`
 
-### 4. Sports Scores Display
-- API: `site.api.espn.com/apis/site/v2`
-- Display scores during **live games only** (configurable behavior for future flexibility)
-- When a live game is active, alternate between plane display and scores at a **configurable interval**
-- Also trigger a score display immediately when a score change is detected
-- Initial teams: Edmonton Oilers (NHL), Green Bay Packers (NFL)
-- Teams and leagues are fully configurable (add/remove via config, no code changes needed)
+### Weather Data Cache
+- `utilities/temperature.py` caches tomorrow.io API responses to `.weather_cache.json`
+- Cache is fresh for 4 hours; falls back to stale data on API failure
 
-### 5. Weather Data Cache
-- Cache weather data to avoid unnecessary re-fetching on restart
-- Data is considered **fresh if fetched within the last 4 hours**
-- On startup, check cache age — use cached data if fresh, re-fetch if stale
+### Tailscale Remote Access
+- Setup guide in `docs/tailscale-setup.md`
 
-### 6. Tailscale Remote Access
-- Set up Tailscale on the pi for remote SSH access while away
-- Provide a **setup guide** (not an automated script)
+### Web Interface (port 8080)
+- `web/app.py` — Flask, serves settings and flight log data
+- **Dashboard** (`/`) — closest/farthest flight logs, nav cards, live clock
+- **Settings** (`/settings`):
+  - Sports Teams — add/remove teams, pause scores for 1 hour
+  - Display Timing — score delay, display interval
+  - Display Brightness — day/night brightness, night mode schedule
+  - Display Theme — 11 colour pickers (clock, flight display, forecast, sports scores)
+  - System Controls — Restart Pi, Shutdown Pi
+  - Log Viewer — live tail of app.log and update.log
+- **Maps** — closest and farthest flight maps (HTML/PNG)
+
+### Display Theme
+- `setup/theme.py` — reads `user_config.json` at startup, exports named colour constants
+- Scenes import from `theme` instead of hardcoding colours from `setup/colours`
+- Configurable: clock day/night, flight number letters/digits, plane type, distance, forecast day/min/max, sports home/away scores
+- Changes take effect after restarting the Pi
+
+### Flight Detail Logging
+- `utilities/overhead.py` — detailed logging of every API call and extracted field
+- Origin/destination prefer detail response (`d["airport"]["origin"]["code"]["iata"]`) over basic listing
+- Retry logic with full traceback on failure
+
+## File Structure
+```
+plane-tracker/
+├── its-a-plane-python/
+│   ├── its-a-plane.py          # Entry point
+│   ├── config.py               # Configuration (reads user_config.json overrides)
+│   ├── display/                # LED matrix display driver + sports/brightness logic
+│   ├── scenes/                 # Display screens (clock, weather, flight, sports, etc.)
+│   ├── setup/                  # colours.py, fonts.py, theme.py, frames.py, screen.py
+│   ├── utilities/              # overhead, sports, temperature, location, animation
+│   ├── web/                    # Flask app, templates, static files, user_config.json
+│   ├── fonts/                  # BDF bitmap fonts
+│   ├── logos/                  # Airline logo PNGs (ICAO filenames, committed)
+│   ├── icons/                  # Weather icon PNGs (weatherCode filenames, committed)
+│   └── sports_logos/           # Team logo PNGs (downloaded at runtime, gitignored)
+├── scripts/
+│   ├── setup-pi.sh             # One-time Pi migration script
+│   ├── update.sh               # Nightly auto-update script
+│   └── install-cron.sh         # Installs the nightly update cron job
+├── docs/                       # Project documentation
+├── .env                        # SSID mappings (gitignored, copy from .env.example)
+├── .env.example                # Template for .env
+├── CLAUDE.md                   # This file
+└── README.md
+```
+
+## Runtime Files (gitignored)
+| File | Purpose |
+|------|---------|
+| `.env` | SSID → lat/lon/airport mappings |
+| `web/user_config.json` | Web UI config overrides (teams, brightness, colours) |
+| `.weather_cache.json` | 4-hour weather API cache |
+| `sports_logos/*.png` | Team logos downloaded from ESPN at startup |
+| `sports_pause.json` | Transient sports-pause expiry timestamp |
+| `close.txt` | Top-N closest flights log |
+| `farthest.txt` | Top-N farthest airports log |
 
 ## Documentation
-- Create and maintain documentation as features are built
-- Docs should live in a `/docs` directory in this repo
+All feature docs live in `/docs`. See [docs/pi-setup.md](docs/pi-setup.md) for initial setup.

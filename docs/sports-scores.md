@@ -59,9 +59,25 @@ Fields extracted per game:
 
 ---
 
+## Team logos
+
+Team logos are downloaded from the ESPN CDN at startup and cached locally in `sports_logos/`. The URL pattern is:
+
+```
+https://a.espncdn.com/i/teamlogos/{league}/500/{abbr}.png
+```
+
+Logos are downloaded as RGBA images, composited onto a black background, and resized to 12×12 pixels. They are rendered on the LED matrix using `matrix.SetImage()` with the away logo at the left edge (x=0) and the home logo at the right edge (x=52).
+
+If logos are unavailable (first boot, network failure), the scene falls back to a text-only layout.
+
+---
+
 ## Adding or removing teams
 
-Edit `SPORTS_TEAMS` in `its-a-plane-python/config.py`:
+Teams can be managed via the **Settings page** (`/settings`) in the web UI without editing any files.
+
+To edit directly, update `SPORTS_TEAMS` in `its-a-plane-python/config.py`:
 
 ```python
 SPORTS_TEAMS = [
@@ -89,16 +105,43 @@ SPORTS_ENABLED = False
 
 ---
 
+## Pausing sports scores
+
+The Settings page includes a **Pause Sports** button that suppresses score display for 1 hour. This is useful when watching a game live and wanting to avoid spoilers on the matrix.
+
+- Pause state is stored in `sports_pause.json` as a Unix timestamp expiry
+- The display process checks this file every 5 seconds and clears `_sports_data` immediately if a pause is activated mid-display
+- The pause expires automatically; no action needed to resume
+- A **Resume** button is available to cancel the pause early
+
+---
+
+## Score colours
+
+Home and away score colours are configurable via the **Display Theme** section of the Settings page. Defaults:
+
+| Element | Default colour |
+|---------|---------------|
+| Away score | Blue (`#28b7f6`) |
+| Home score | Orange (`#fea727`) |
+
+---
+
 ## Matrix layout
 
-The 64x32 display is divided into three horizontal bands:
+The 64×32 display is divided into three horizontal bands:
 
 ```
 Row  0-9  : "LIVE" (red, left) + league tag (grey, right)
-Row 10-20 : Score line — away abbr, away score, " - ", home score, home abbr
+Row 10-20 : Score — away logo (left), score numbers (centre), home logo (right)
 Row 21-31 : Period and clock — e.g. "P2  14:23"
 ```
 
-Away team abbreviation and score are drawn in blue; home team in orange. Both abbreviations are white. The separator and period line use grey so they recede visually.
+With logos present:
+- Away logo at x=0, home logo at x=52 (12×12 px each)
+- Score numbers centred in the 40px middle column, colour-coded
+
+Without logos (fallback):
+- Text-only layout: `AWY X - X HOM`, all centred
 
 When multiple teams have simultaneous live games, the scene cycles through them every 15 seconds.

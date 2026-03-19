@@ -2,25 +2,36 @@
 
 ## How It Works
 
-At startup, `config.py` calls `utilities/location.py` to detect the current WiFi SSID using `nmcli`. It looks up the SSID in a built-in mapping and sets `LOCATION_HOME` and `ZONE_HOME` automatically.
+At startup, `config.py` calls `utilities/location.py` to detect the current WiFi SSID using `nmcli`. It looks up the SSID in the `SSID_LOCATIONS` mapping and sets `LOCATION_HOME` and `ZONE_HOME` automatically.
 
 If the SSID is not in the map, or if detection fails (no WiFi, nmcli unavailable), the app falls back to the hardcoded defaults in `config.py`.
 
-## Adding or Editing a Location
+## SSID Mappings
 
-Edit `its-a-plane-python/utilities/location.py`, in the `SSID_LOCATIONS` dict:
+SSID names and their lat/lon coordinates are stored in a `.env` file at the repo root. This file is **gitignored** and must be copied to the Pi manually.
 
-```python
-SSID_LOCATIONS = {
-    "YourSSID": {
-        "lat": 44.12345,
-        "lon": -88.12345,
-    },
-    # ...
-}
+Format:
+```
+SSID_LOCATIONS={"YourSSID": {"lat": 44.12345, "lon": -88.12345}, "AnotherSSID": {"lat": 42.0, "lon": -87.5}}
 ```
 
-The 3-mile bounding box (`ZONE_HOME`) is calculated automatically from the lat/lon. No other changes are needed.
+`utilities/location.py` loads this value at startup using `python-dotenv`.
+
+## Adding or Editing a Location
+
+Edit the `.env` file in the repo root on your local machine:
+
+```
+SSID_LOCATIONS={"milloosh": {"lat": 42.283751, "lon": -87.969466}, "Komquat": {"lat": 44.60328619517002, "lon": -88.0988388865091}, "boosh-5": {"lat": 44.231570633645646, "lon": -88.3938172032542}}
+```
+
+Then copy the updated `.env` to the Pi:
+
+```bash
+scp .env tyler@autism-pi:/home/tyler/plane-tracker/.env
+```
+
+Reboot the Pi to apply the new mappings.
 
 ## WiFi Passwords
 
