@@ -66,3 +66,17 @@ SPORTS_TEAMS             = _user_cfg.get("sports_teams", [
     {"name": "St. Louis Blues", "abbreviation": "STL", "sport": "hockey", "league": "nhl"},
 ])
 
+# ---------------------------------------------------------------------------
+# Display brightness — overridden by web/user_config.json if present.
+# ---------------------------------------------------------------------------
+if "brightness" in _user_cfg:
+    BRIGHTNESS = _user_cfg["brightness"]
+if "brightness_night" in _user_cfg:
+    BRIGHTNESS_NIGHT = _user_cfg["brightness_night"]
+if "night_brightness" in _user_cfg:
+    NIGHT_BRIGHTNESS = _user_cfg["night_brightness"]
+if "night_start" in _user_cfg:
+    NIGHT_START = _user_cfg["night_start"]
+if "night_end" in _user_cfg:
+    NIGHT_END = _user_cfg["night_end"]
+

@@ -290,6 +290,13 @@
             </div>
         </div>
         <div class="status" id="teams-status"></div>
+
+        <!-- Pause controls -->
+        <div style="display:flex; align-items:center; gap:14px; margin-top:18px; padding-top:16px; border-top:1px solid #222; flex-wrap:wrap;">
+            <button class="btn-warning" id="pause-btn" onclick="pauseSports()">Pause Scores (1 hr)</button>
+            <button class="btn-primary btn-sm" id="resume-btn" onclick="resumeSports()" style="display:none">Resume</button>
+            <span id="pause-label" style="font-size:12px; color:#666;"></span>
+        </div>
     </section>
 
     <!-- Display Timing -->
@@ -312,6 +319,68 @@
             </div>
         </div>
         <div class="status" id="delays-status"></div>
+    </section>
+
+    <!-- Display Brightness -->
+    <section>
+        <h2>Display Brightness</h2>
+        <div class="delays-form" style="grid-template-columns: 1fr 1fr auto; margin-bottom: 16px;">
+            <div>
+                <label for="brightness">Day Brightness</label>
+                <input type="number" id="brightness" min="0" max="100" placeholder="100">
+                <p class="field-hint">0 – 100%</p>
+            </div>
+            <div>
+                <label for="brightness-night-val">Night Brightness</label>
+                <input type="number" id="brightness-night-val" min="0" max="100" placeholder="50">
+                <p class="field-hint">0 – 100%</p>
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <button class="btn-primary" onclick="saveBrightness()">Save</button>
+            </div>
+        </div>
+        <div style="margin-bottom: 14px;">
+            <label style="display:flex; align-items:center; gap:8px; cursor:pointer; font-size:13px; color:#ccc;">
+                <input type="checkbox" id="night-brightness-enabled">
+                Enable night mode (dim display on a schedule)
+            </label>
+        </div>
+        <div class="delays-form" id="night-time-options" style="grid-template-columns: 1fr 1fr; opacity:0.4; pointer-events:none;">
+            <div>
+                <label for="night-start">Night Start</label>
+                <input type="time" id="night-start" value="22:00">
+                <p class="field-hint">Display dims at this time</p>
+            </div>
+            <div>
+                <label for="night-end">Night End</label>
+                <input type="time" id="night-end" value="06:00">
+                <p class="field-hint">Returns to day brightness</p>
+            </div>
+        </div>
+        <div class="status" id="brightness-status"></div>
+        <p class="field-hint" style="margin-top:10px;">Changes take effect after restarting the Pi.</p>
+    </section>
+
+    <!-- Display Theme -->
+    <section>
+        <h2>Display Theme</h2>
+        <p style="font-size:12px; color:#555; margin-bottom:18px;">Sports score colours only. Changes take effect after restarting the Pi.</p>
+        <div class="delays-form" style="grid-template-columns: 1fr 1fr auto;">
+            <div>
+                <label for="sports-away-colour">Away Score Colour</label>
+                <input type="color" id="sports-away-colour" value="#28b7f6" style="width:100%; height:38px; padding:2px; background:#0d0d0d; border:1px solid #333; border-radius:4px; cursor:pointer;">
+            </div>
+            <div>
+                <label for="sports-home-colour">Home Score Colour</label>
+                <input type="color" id="sports-home-colour" value="#fea727" style="width:100%; height:38px; padding:2px; background:#0d0d0d; border:1px solid #333; border-radius:4px; cursor:pointer;">
+            </div>
+            <div>
+                <label>&nbsp;</label>
+                <button class="btn-primary" onclick="saveTheme()">Save</button>
+            </div>
+        </div>
+        <div class="status" id="theme-status"></div>
     </section>
 
     <!-- System Controls -->
@@ -400,6 +469,16 @@
                 renderTeams(cfg.sports_teams);
                 document.getElementById("score-delay").value = cfg.sports_score_delay;
                 document.getElementById("display-interval").value = cfg.sports_display_interval;
+                // Brightness
+                document.getElementById("brightness").value = cfg.brightness;
+                document.getElementById("brightness-night-val").value = cfg.brightness_night;
+                document.getElementById("night-brightness-enabled").checked = cfg.night_brightness;
+                document.getElementById("night-start").value = cfg.night_start;
+                document.getElementById("night-end").value = cfg.night_end;
+                updateNightOptions();
+                // Theme colours
+                document.getElementById("sports-away-colour").value = cfg.sports_away_colour;
+                document.getElementById("sports-home-colour").value = cfg.sports_home_colour;
             } catch (e) {
                 setStatus("teams-status", "Failed to load config: " + e.message, "err");
             }
@@ -471,6 +550,119 @@
             }
         }
 
+        // --- Sports pause ---
+
+        let _pauseTimer = null;
+
+        async function loadPauseStatus() {
+            try {
+                const data = await apiFetch("/settings/sports/pause");
+                renderPauseState(data);
+            } catch (e) { /* ignore */ }
+        }
+
+        function renderPauseState(data) {
+            const pauseBtn  = document.getElementById("pause-btn");
+            const resumeBtn = document.getElementById("resume-btn");
+            const label     = document.getElementById("pause-label");
+            clearInterval(_pauseTimer);
+
+            if (data.paused && data.remaining_seconds > 0) {
+                pauseBtn.style.display  = "none";
+                resumeBtn.style.display = "";
+                // Show countdown that updates every second
+                function tick() {
+                    const mins = Math.floor(data.remaining_seconds / 60);
+                    const secs = data.remaining_seconds % 60;
+                    label.textContent = `Paused — ${mins}m ${String(secs).padStart(2,"0")}s remaining`;
+                    data.remaining_seconds--;
+                    if (data.remaining_seconds < 0) {
+                        clearInterval(_pauseTimer);
+                        pauseBtn.style.display  = "";
+                        resumeBtn.style.display = "none";
+                        label.textContent = "";
+                    }
+                }
+                tick();
+                _pauseTimer = setInterval(tick, 1000);
+            } else {
+                pauseBtn.style.display  = "";
+                resumeBtn.style.display = "none";
+                label.textContent = "";
+            }
+        }
+
+        async function pauseSports() {
+            try {
+                const data = await apiFetch("/settings/sports/pause", "POST", { hours: 1 });
+                renderPauseState(data);
+            } catch (e) {
+                setStatus("teams-status", "Error: " + e.message, "err");
+            }
+        }
+
+        async function resumeSports() {
+            try {
+                await apiFetch("/settings/sports/resume", "POST");
+                renderPauseState({ paused: false });
+            } catch (e) {
+                setStatus("teams-status", "Error: " + e.message, "err");
+            }
+        }
+
+        // --- Brightness ---
+
+        function updateNightOptions() {
+            const enabled = document.getElementById("night-brightness-enabled").checked;
+            const opts = document.getElementById("night-time-options");
+            opts.style.opacity       = enabled ? "1"    : "0.4";
+            opts.style.pointerEvents = enabled ? "auto" : "none";
+        }
+
+        document.getElementById("night-brightness-enabled").addEventListener("change", updateNightOptions);
+
+        async function saveBrightness() {
+            const brightness      = parseInt(document.getElementById("brightness").value, 10);
+            const brightnessNight = parseInt(document.getElementById("brightness-night-val").value, 10);
+            const nightEnabled    = document.getElementById("night-brightness-enabled").checked;
+            const nightStart      = document.getElementById("night-start").value;
+            const nightEnd        = document.getElementById("night-end").value;
+
+            if (isNaN(brightness) || isNaN(brightnessNight)) {
+                setStatus("brightness-status", "Brightness values must be numbers.", "err");
+                return;
+            }
+
+            try {
+                await apiFetch("/settings/brightness", "POST", {
+                    brightness,
+                    brightness_night:  brightnessNight,
+                    night_brightness:  nightEnabled,
+                    night_start:       nightStart,
+                    night_end:         nightEnd,
+                });
+                setStatus("brightness-status", "Saved. Restart Pi to apply.", "ok");
+            } catch (e) {
+                setStatus("brightness-status", "Error: " + e.message, "err");
+            }
+        }
+
+        // --- Theme ---
+
+        async function saveTheme() {
+            const homeColour = document.getElementById("sports-home-colour").value;
+            const awayColour = document.getElementById("sports-away-colour").value;
+            try {
+                await apiFetch("/settings/theme", "POST", {
+                    sports_home_colour: homeColour,
+                    sports_away_colour: awayColour,
+                });
+                setStatus("theme-status", "Saved. Restart Pi to apply.", "ok");
+            } catch (e) {
+                setStatus("theme-status", "Error: " + e.message, "err");
+            }
+        }
+
         // --- System controls ---
 
         async function systemRestart() {
@@ -522,6 +714,7 @@
         // Boot
         loadConfig();
         loadLog();
+        loadPauseStatus();
     </script>
 </body>
 </html>

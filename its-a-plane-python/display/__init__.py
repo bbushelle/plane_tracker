@@ -1,5 +1,22 @@
+import json as _json
+import os
 import sys
 from datetime import datetime, timedelta
+
+# Transient file written by the web UI to temporarily suppress sports display
+_SPORTS_PAUSE_FILE = os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+    "sports_pause.json",
+)
+
+
+def _sports_is_paused() -> bool:
+    try:
+        with open(_SPORTS_PAUSE_FILE) as f:
+            data = _json.load(f)
+        return datetime.now().timestamp() < data.get("expires_at", 0)
+    except Exception:
+        return False
 from setup import frames
 from utilities.animator import Animator
 from utilities.overhead import Overhead
@@ -214,7 +231,7 @@ class Display(
             fresh_games = self.sports_poller.data  # clears new_data flag
             score_changed = self.sports_poller.score_changed
 
-            if fresh_games:
+            if fresh_games and not _sports_is_paused():
                 self._sports_data = fresh_games
                 self._sports_display_frames = 0  # restart display timer
 
@@ -223,9 +240,14 @@ class Display(
                 if score_changed and self._sports_score_show_at is None:
                     self._sports_score_show_at = datetime.now() + timedelta(seconds=SPORTS_SCORE_DELAY)
             else:
-                # No live games — stop showing sports and cancel any pending delay
+                # No live games (or sports paused) — stop showing sports
                 self._sports_data = []
                 self._sports_score_show_at = None
+
+        # If pause was activated mid-display, clear sports immediately
+        if self._sports_data and _sports_is_paused():
+            self._sports_data = []
+            self._sports_score_show_at = None
 
         # Fire delayed score-change display once the delay has elapsed.
         # Only reset the scene if planes aren't mid-scroll — sports_score will

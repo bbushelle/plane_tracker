@@ -35,7 +35,19 @@ CONFIG_DEFAULTS = {
     ],
     "sports_score_delay": 10,
     "sports_display_interval": 30,
+    # Display brightness
+    "brightness": 100,
+    "brightness_night": 50,
+    "night_brightness": False,
+    "night_start": "22:00",
+    "night_end": "06:00",
+    # Sports score colours (hex strings matching colours.LIGHT_ORANGE / LIGHT_BLUE)
+    "sports_home_colour": "#fea727",
+    "sports_away_colour": "#28b7f6",
 }
+
+# Transient sports-pause file — written here, read by the display process
+SPORTS_PAUSE_FILE = os.path.join(BASE_DIR, "sports_pause.json")
 
 
 def load_user_config():
@@ -175,6 +187,105 @@ def settings_delays():
     save_user_config(user_cfg)
 
     return jsonify({"status": "ok", "sports_score_delay": score_delay, "sports_display_interval": display_interval})
+
+
+# --- Brightness settings ---
+
+@app.post("/settings/brightness")
+def settings_brightness():
+    body = request.get_json(force=True, silent=True) or {}
+
+    try:
+        brightness = int(body.get("brightness", 100))
+        brightness_night = int(body.get("brightness_night", 50))
+    except (TypeError, ValueError):
+        return jsonify({"error": "Brightness values must be integers"}), 400
+
+    if not (0 <= brightness <= 100 and 0 <= brightness_night <= 100):
+        return jsonify({"error": "Brightness must be between 0 and 100"}), 400
+
+    night_brightness = bool(body.get("night_brightness", False))
+    night_start = str(body.get("night_start", "22:00")).strip()
+    night_end = str(body.get("night_end", "06:00")).strip()
+
+    def valid_time(t):
+        parts = t.split(":")
+        return len(parts) == 2 and all(p.isdigit() for p in parts)
+
+    if not valid_time(night_start) or not valid_time(night_end):
+        return jsonify({"error": "Times must be in HH:MM format"}), 400
+
+    user_cfg = load_user_config()
+    user_cfg.update({
+        "brightness": brightness,
+        "brightness_night": brightness_night,
+        "night_brightness": night_brightness,
+        "night_start": night_start,
+        "night_end": night_end,
+    })
+    save_user_config(user_cfg)
+    return jsonify({"status": "ok"})
+
+
+# --- Display theme (sports score colours) ---
+
+@app.post("/settings/theme")
+def settings_theme():
+    body = request.get_json(force=True, silent=True) or {}
+
+    def valid_hex(s):
+        return isinstance(s, str) and len(s) == 7 and s.startswith("#") and \
+               all(c in "0123456789abcdefABCDEF" for c in s[1:])
+
+    home_colour = body.get("sports_home_colour", "").strip()
+    away_colour = body.get("sports_away_colour", "").strip()
+
+    if not valid_hex(home_colour) or not valid_hex(away_colour):
+        return jsonify({"error": "Colours must be in #RRGGBB format"}), 400
+
+    user_cfg = load_user_config()
+    user_cfg["sports_home_colour"] = home_colour
+    user_cfg["sports_away_colour"] = away_colour
+    save_user_config(user_cfg)
+    return jsonify({"status": "ok"})
+
+
+# --- Sports score pause ---
+
+@app.get("/settings/sports/pause")
+def sports_pause_status():
+    try:
+        with open(SPORTS_PAUSE_FILE) as f:
+            data = json.load(f)
+        expires_at = data.get("expires_at", 0)
+        remaining = max(0, expires_at - time.time())
+        return jsonify({"paused": remaining > 0, "expires_at": expires_at,
+                        "remaining_seconds": int(remaining)})
+    except FileNotFoundError:
+        return jsonify({"paused": False})
+
+
+@app.post("/settings/sports/pause")
+def sports_pause_set():
+    body = request.get_json(force=True, silent=True) or {}
+    try:
+        hours = float(body.get("hours", 1))
+    except (TypeError, ValueError):
+        hours = 1.0
+    expires_at = time.time() + hours * 3600
+    with open(SPORTS_PAUSE_FILE, "w") as f:
+        json.dump({"expires_at": expires_at}, f)
+    return jsonify({"status": "paused", "expires_at": expires_at,
+                    "remaining_seconds": int(hours * 3600)})
+
+
+@app.post("/settings/sports/resume")
+def sports_pause_clear():
+    try:
+        os.remove(SPORTS_PAUSE_FILE)
+    except FileNotFoundError:
+        pass
+    return jsonify({"status": "resumed"})
 
 
 # --- System controls ---
