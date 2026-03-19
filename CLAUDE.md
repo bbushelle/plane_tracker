@@ -30,7 +30,8 @@ Based on [c0wsaysmoo/plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-t
 - `utilities/sports.py` — `SportsPoller` background thread, score-change detection
 - `scenes/sportsscore.py` — 64×32 layout: rows 0-7 LIVE + period/clock header, rows 9-20 logos + score, rows 24-28 abbreviations, rows 29-31 league
 - Team logos downloaded from ESPN CDN at startup, cached in `sports_logos/` (gitignored); cached in memory after first load per session
-- Logos rendered via `matrix.SetImage` in the `z_sports_logos` keyframe, which fires after `sync` alphabetically — matching the pattern used by flight logos and weather icons
+- Logos rendered via `matrix.SetImage` inside `_draw_game` (called from `sports_score`, before `sync`) — writes logos into the back buffer which sync then swaps to display, matching the pattern used by flight logos and weather icons
+- When a live game is detected, logos for both teams (including unconfigured opponents) are downloaded in a background thread
 - Configurable delay before showing a score change (default 10s, for TV broadcast lag)
 - Planes take priority — sports only show after current scroll cycle completes
 - Display interval: 30s of sports, then back to planes
@@ -58,7 +59,7 @@ Based on [c0wsaysmoo/plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-t
 
 ### Test Display Suite
 - Web UI buttons trigger specific test scenes without needing live flights or an active game
-- Modes: `clock`, `forecast`, `flight` (mock UAL1234 ORD→LAX), `sports` (mock EDM 3–2 OTT), `cycle` (rotates clock→flight→sports every 15s)
+- Modes: `clock`, `forecast`, `flight` (mock UAL1234 ORD→LAX), `sports` (mock EDM 3–2 STL), `cycle` (rotates clock→flight→sports every 15s)
 - Active mode shown in the UI; Reset button returns to normal operation
 - Implemented via `test_scene.json` file-based IPC — Flask writes the mode, display process reads it every 5s in `check_test_mode` KeyFrame
 - While a test mode is active, all real flight and sports polling is blocked so mock data is not overwritten

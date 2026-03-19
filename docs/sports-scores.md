@@ -67,11 +67,13 @@ Team logos are downloaded from the ESPN CDN at startup and cached locally in `sp
 https://a.espncdn.com/i/teamlogos/{league}/500/{abbr}.png
 ```
 
-Logos are downloaded as RGBA images, composited onto a black background, and resized to 12×12 pixels. They are rendered onto the LED matrix after each frame sync using `matrix.SetImage()` — the same technique used by flight logos and weather icons. The away logo is drawn at the left edge (x=0, y=9) and the home logo at the right edge (x=52, y=9).
+Logos are downloaded as RGBA images, composited onto a black background, and resized to 12×12 pixels. They are drawn into the canvas back buffer via `matrix.SetImage()` (the same technique used by flight logos and weather icons), then swapped to the display by `sync`. The away logo is at the left edge (x=0, y=9) and the home logo at the right edge (x=52, y=9).
 
 Logos are cached in memory after first load so the Pi's SD card is not read every frame. The cache is cleared on scene reset.
 
-If logos are unavailable (first boot, network failure, unconfigured opponent team), the scene falls back to a text-only layout.
+When a live game is detected, logos for both teams (including the opponent, if not pre-configured) are downloaded in a background thread automatically.
+
+If logos are unavailable (first boot before download completes, network failure), the scene falls back to a text-only layout.
 
 ---
 

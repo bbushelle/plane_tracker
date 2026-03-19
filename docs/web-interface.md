@@ -79,7 +79,7 @@ Triggers a specific test scene on the LED matrix without needing a live flight o
 | Clock / Date | `clock` | Clock and date scene only (no flights, no sports) |
 | Forecast | `forecast` | 3-day weather forecast scene |
 | Mock Flight | `flight` | Simulated UAL1234 ORD→LAX flight scroll |
-| Mock Sports | `sports` | Simulated EDM 3–2 OTT live hockey score |
+| Mock Sports | `sports` | Simulated EDM 3–2 STL live hockey score |
 | Cycle All | `cycle` | Rotates through clock, flight, and sports every 15 seconds |
 | Reset | _(clear)_ | Returns to normal operation |
 
