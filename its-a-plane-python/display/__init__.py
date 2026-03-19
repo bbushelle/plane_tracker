@@ -151,6 +151,12 @@ class Display(
     Animator,
 ):
     def __init__(self):
+        # Clear any leftover test scene from a previous session
+        try:
+            os.remove(_TEST_SCENE_FILE)
+        except FileNotFoundError:
+            pass
+
         # Setup Display
         options = RGBMatrixOptions()
         options.hardware_mapping = "adafruit-hat-pwm" if HAT_PWM_ENABLED else "adafruit-hat"
