@@ -333,8 +333,11 @@ class Display(
 
     @Animator.KeyFrame.add(0)
     def clear_screen(self):
-        # First operation after
-        # a screen reset
+        # Clear both canvas buffers so stale content from the previous scene
+        # doesn't bleed through after the first swap (e.g. forecast temperature
+        # rows persisting into the flight scroll via the double buffer).
+        self.canvas.Clear()
+        self.matrix.SwapOnVSync(self.canvas)
         self.canvas.Clear()
 
     @Animator.KeyFrame.add(frames.PER_SECOND * 5)
