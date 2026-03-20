@@ -20,10 +20,11 @@ Based on [c0wsaysmoo/plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-t
 
 ### Location Detection
 - `utilities/location.py` reads `SSID_LOCATIONS` from `.env` via python-dotenv
-- 3-mile bounding box calculated automatically from lat/lon
+- Bounding box calculated automatically from lat/lon; default radius 3 miles
 - `JOURNEY_CODE_SELECTED` (home airport) also set per SSID
 - Three known SSIDs: milloosh → ORD, Komquat → GRB, boosh-5 → ATW
 - Falls back to hardcoded defaults if SSID not found
+- Per-SSID `min_altitude` and `radius_miles` overrides configurable via web UI (`/settings` → Location Settings), stored in `user_config.json["ssid_overrides"]`; takes effect after Restart App
 
 ### Sports Scores Display
 - ESPN public scoreboard API, no key required
@@ -53,7 +54,8 @@ Based on [c0wsaysmoo/plane-tracker-rgb-pi](https://github.com/c0wsaysmoo/plane-t
   - Display Brightness — day/night brightness, night mode schedule
   - Display Theme — 11 colour pickers (clock, flight display, forecast, sports scores)
   - Test Display — trigger mock scenes without live data (see below)
-  - System Controls — Restart Pi, Shutdown Pi
+  - Location Settings — per-SSID min altitude and scan radius overrides
+  - System Controls — Restart App (~15s), Restart Pi (~60s), Shutdown Pi
   - Log Viewer — live tail of app.log and update.log
 - **Maps** — closest and farthest flight maps (HTML/PNG)
 

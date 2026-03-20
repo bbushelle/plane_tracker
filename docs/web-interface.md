@@ -25,7 +25,7 @@ Visual map showing the farthest origin/destination airports on record.
 
 ### Settings (`/settings`)
 
-Configures all runtime settings. Changes are saved to `user_config.json` immediately and take effect after the next Pi reboot.
+Configures all runtime settings. Changes are saved to `user_config.json` immediately. Most changes take effect after restarting the app or rebooting the Pi.
 
 ---
 
@@ -70,6 +70,17 @@ Colour pickers for all scene elements. Changes take effect after reboot.
 | Forecast | Day name colour, low temp colour, high temp colour |
 | Sports Scores | Away score colour, home score colour |
 
+### Location Settings
+
+Per-SSID overrides for flight filtering. Each known SSID (from `.env`) gets its own row.
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Min Altitude | 2000 ft | Ignore flights below this altitude |
+| Radius | 3.0 mi | Bounding box radius around the home location |
+
+Changes take effect after **Restart App** (not a full reboot).
+
 ### Test Display
 
 Triggers a specific test scene on the LED matrix without needing a live flight or active game. Useful for verifying the display is working after a config change or reboot.
@@ -85,9 +96,10 @@ Triggers a specific test scene on the LED matrix without needing a live flight o
 
 The active test mode is shown in the UI. Test mode blocks all real flight and sports data from updating the display until Reset is pressed.
 
-### System
+### System Controls
 
-- **Reboot Pi** — reboots the Raspberry Pi. All settings changes require a reboot to take effect.
+- **Restart App** — kills and relaunches `its-a-plane.py` without rebooting the Pi (~15s downtime). Use after changing location or altitude settings.
+- **Restart Pi** — full hardware reboot (~60s downtime).
 - **Shutdown Pi** — cleanly powers down the Pi.
 
 ### Logs
@@ -113,8 +125,11 @@ Live tail of `app.log` and `update.log`, fetched from the server. Useful for deb
 | POST | `/settings/sports/resume` | Resume sports scores immediately |
 | GET | `/test/scene` | Get current test mode (`{"mode": "flight"}` or `{"mode": null}`) |
 | POST | `/test/scene` | Set test mode (body: `{"mode": "clock"\|"flight"\|"sports"\|"forecast"\|"cycle"\|null}`) |
+| GET | `/settings/location` | Per-SSID min_altitude and radius_miles overrides |
+| POST | `/settings/location` | Save per-SSID override (body: `{"ssid": "...", "min_altitude": 2000, "radius_miles": 3.0}`) |
 | GET | `/logs/app` | Last 200 lines of app.log |
 | GET | `/logs/update` | Last 200 lines of update.log |
+| POST | `/system/app/restart` | Kill and relaunch `its-a-plane.py` without rebooting |
 | POST | `/system/restart` | Reboot the Pi |
 | POST | `/system/shutdown` | Shut down the Pi |
 

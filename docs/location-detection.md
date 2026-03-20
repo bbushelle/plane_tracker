@@ -53,9 +53,30 @@ sudo nmcli con add type wifi ssid 'YourSSID' con-name 'YourSSID' \
 | Komquat | 44.60328619517002, -88.0988388865091 |
 | boosh-5 | 44.231570633645646, -88.3938172032542 |
 
+## Per-SSID Overrides (Web UI)
+
+The web settings page (`/settings` → Location Settings) lets you override two values per SSID without editing `.env`:
+
+| Setting | Default | Description |
+|---------|---------|-------------|
+| Min Altitude | 2000 ft | Flights below this are ignored |
+| Radius | 3.0 mi | Bounding box radius around the home location |
+
+Overrides are stored in `web/user_config.json` under the `ssid_overrides` key:
+
+```json
+{
+  "ssid_overrides": {
+    "milloosh": {"min_altitude": 1500, "radius_miles": 4.0}
+  }
+}
+```
+
+Changes take effect after **Restart App** (Settings → System Controls), not a full reboot.
+
 ## Zone Radius
 
-The `ZONE_HOME` bounding box is calculated as a **3-mile radius** around `LOCATION_HOME`. This is configured via `ZONE_RADIUS_MILES` in `utilities/location.py`.
+The `ZONE_HOME` bounding box defaults to a **3-mile radius** around `LOCATION_HOME`. The radius used at startup is the per-SSID override from `user_config.json` if set, otherwise `ZONE_RADIUS_MILES = 3.0` from `utilities/location.py`.
 
 ## Verifying Detection
 
