@@ -486,9 +486,14 @@
     <section>
         <h2>System Controls</h2>
         <div class="system-controls">
+            <button class="btn-primary" onclick="appRestart()">Restart App</button>
             <button class="btn-warning" onclick="systemRestart()">Restart Pi</button>
             <button class="btn-danger" onclick="systemShutdown()">Shutdown Pi</button>
         </div>
+        <p class="field-hint" style="margin-top:12px;">
+            <strong style="color:#ccc">Restart App</strong> — reloads config and display without rebooting the Pi (~15s downtime).<br>
+            <strong style="color:#ccc">Restart Pi</strong> — full hardware reboot (~60s downtime).
+        </p>
         <div class="status" id="system-status"></div>
     </section>
 
@@ -779,6 +784,17 @@
         }
 
         // --- System controls ---
+
+        async function appRestart() {
+            if (!confirm("Restart the app? The display will be off for ~15 seconds.")) return;
+            try {
+                setStatus("system-status", "Sending restart command...", "info");
+                await apiFetch("/system/app/restart", "POST");
+                setStatus("system-status", "App restarting (~15s)...", "info");
+            } catch (e) {
+                setStatus("system-status", "Error: " + e.message, "err");
+            }
+        }
 
         async function systemRestart() {
             if (!confirm("Restart the Pi? The web interface will be unavailable for ~60 seconds.")) return;

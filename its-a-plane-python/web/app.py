@@ -409,6 +409,25 @@ def settings_location_save():
 APP_SCRIPT = "/home/tyler/plane-tracker/its-a-plane-python/its-a-plane.py"
 APP_LOG    = "/home/tyler/plane-tracker/logs/app.log"
 
+@app.post("/system/app/restart")
+def system_app_restart():
+    """Kill and relaunch its-a-plane.py without rebooting the Pi.
+
+    Sleeps 3 s before killing so the HTTP response is delivered first,
+    then kills both the main process and the Flask subprocess (this process),
+    then relaunches the main script which starts Flask again.
+    """
+    cmd = (
+        "sleep 3 && "
+        "pkill -f 'its-a-plane.py' || true; "
+        "pkill -f 'web/app.py' || true; "
+        "sleep 2 && "
+        f"nohup /usr/bin/python3 {APP_SCRIPT} >> {APP_LOG} 2>&1 &"
+    )
+    subprocess.Popen(["bash", "-c", cmd])
+    return jsonify({"status": "restarting app"})
+
+
 @app.post("/system/restart")
 def system_restart():
     subprocess.Popen(["sudo", "reboot"])
