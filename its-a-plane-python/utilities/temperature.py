@@ -182,8 +182,6 @@ def grab_forecast(tag="unknown"):
             logging.debug(f"[WeatherCache] Returning fresh cached forecast data (tag={tag})")
             return intervals
 
-    dt = datetime.now() - timedelta(days=1)
-
     try:
         s = get_session()
         resp = s.post(
@@ -208,7 +206,7 @@ def grab_forecast(tag="unknown"):
                     "moonPhase"
                 ],
                 "timesteps": ["1d"],
-                "endTime": (dt + timedelta(days=int(FORECAST_DAYS))).isoformat(),
+                "endTime": (datetime.now() + timedelta(days=int(FORECAST_DAYS))).isoformat(),
             },
             timeout=(5, 20)
         )

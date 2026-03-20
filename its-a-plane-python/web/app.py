@@ -413,18 +413,25 @@ APP_LOG    = "/home/tyler/plane-tracker/logs/app.log"
 def system_app_restart():
     """Kill and relaunch its-a-plane.py without rebooting the Pi.
 
-    Sleeps 3 s before killing so the HTTP response is delivered first,
-    then kills both the main process and the Flask subprocess (this process),
-    then relaunches the main script which starts Flask again.
+    Writes the restart logic to a temp script and runs it so that bash's own
+    cmdline never contains 'its-a-plane.py' — otherwise pkill would match and
+    kill the bash process before it could relaunch the app.
     """
-    cmd = (
-        "sleep 3 && "
-        "pkill -f 'its-a-plane.py' || true; "
-        "pkill -f 'web/app.py' || true; "
-        "sleep 2 && "
-        f"nohup /usr/bin/python3 {APP_SCRIPT} >> {APP_LOG} 2>&1 &"
+    import stat, tempfile
+    script = (
+        "#!/bin/bash\n"
+        "sleep 3\n"
+        'pkill -f "its-a-plane.py" || true\n'
+        'pkill -f "web/app.py" || true\n'
+        "sleep 2\n"
+        f'nohup /usr/bin/python3 "{APP_SCRIPT}" >> "{APP_LOG}" 2>&1 &\n'
+        'rm -f "$0"\n'
     )
-    subprocess.Popen(["bash", "-c", cmd])
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".sh", delete=False) as f:
+        f.write(script)
+        tmp = f.name
+    os.chmod(tmp, stat.S_IRWXU)
+    subprocess.Popen(["bash", tmp])
     return jsonify({"status": "restarting app"})
 
 
