@@ -441,6 +441,29 @@
         <div class="status" id="theme-status"></div>
     </section>
 
+    <!-- Location Settings -->
+    <section>
+        <h2>Location Settings</h2>
+        <p style="font-size:12px; color:#555; margin-bottom:18px;">
+            Per-SSID scan radius and minimum altitude filter. Changes take effect after restarting the Pi.
+        </p>
+        <table id="location-table">
+            <thead>
+                <tr>
+                    <th>SSID</th>
+                    <th>Airport</th>
+                    <th>Min Altitude (ft)</th>
+                    <th>Radius (mi)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody id="location-body">
+                <tr class="empty-row"><td colspan="5">Loading...</td></tr>
+            </tbody>
+        </table>
+        <div class="status" id="location-status"></div>
+    </section>
+
     <!-- Test Display -->
     <section>
         <h2>Test Display</h2>
@@ -842,11 +865,63 @@
             } catch (_) {}
         }
 
+        // --- Location settings ---
+
+        async function loadLocationSettings() {
+            try {
+                const data = await apiFetch("/settings/location");
+                renderLocationTable(data.ssids);
+            } catch (e) {
+                setStatus("location-status", "Failed to load location settings: " + e.message, "err");
+            }
+        }
+
+        function renderLocationTable(ssids) {
+            const tbody = document.getElementById("location-body");
+            if (!ssids || ssids.length === 0) {
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="5">No SSIDs configured in .env</td></tr>';
+                return;
+            }
+            tbody.innerHTML = ssids.map(s => `
+                <tr>
+                    <td>${escHtml(s.ssid)}</td>
+                    <td style="color:#888">${escHtml(s.airport)}</td>
+                    <td><input type="number" id="alt-${escHtml(s.ssid)}" value="${s.min_altitude}" min="0" style="width:100px"></td>
+                    <td><input type="number" id="rad-${escHtml(s.ssid)}" value="${s.radius_miles}" min="0.1" step="0.5" style="width:80px"></td>
+                    <td><button class="btn-primary btn-sm" onclick="saveLocation(${escAttr(s.ssid)})">Save</button></td>
+                </tr>
+            `).join("");
+        }
+
+        async function saveLocation(ssid) {
+            const altEl = document.getElementById("alt-" + ssid);
+            const radEl = document.getElementById("rad-" + ssid);
+            const min_altitude = parseInt(altEl.value, 10);
+            const radius_miles = parseFloat(radEl.value);
+
+            if (isNaN(min_altitude) || min_altitude < 0) {
+                setStatus("location-status", "Min altitude must be 0 or greater.", "err");
+                return;
+            }
+            if (isNaN(radius_miles) || radius_miles <= 0) {
+                setStatus("location-status", "Radius must be greater than 0.", "err");
+                return;
+            }
+
+            try {
+                await apiFetch("/settings/location", "POST", { ssid, min_altitude, radius_miles });
+                setStatus("location-status", `Saved settings for ${ssid}. Restart Pi to apply.`, "ok");
+            } catch (e) {
+                setStatus("location-status", "Error: " + e.message, "err");
+            }
+        }
+
         // Boot
         loadConfig();
         loadLog();
         loadPauseStatus();
         loadTestStatus();
+        loadLocationSettings();
     </script>
 </body>
 </html>

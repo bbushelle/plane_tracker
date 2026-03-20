@@ -13,6 +13,13 @@ log = logging.getLogger(__name__)
 WEB_DIR = os.path.dirname(__file__)
 BASE_DIR = os.path.abspath(os.path.join(WEB_DIR, ".."))
 
+# SSID location map from .env — used to enumerate known SSIDs in /settings/location
+sys.path.insert(0, BASE_DIR)
+try:
+    from utilities.location import SSID_LOCATIONS
+except Exception:
+    SSID_LOCATIONS = {}
+
 app = Flask(
     __name__,
     template_folder=os.path.join(WEB_DIR, "templates"),
@@ -58,6 +65,8 @@ CONFIG_DEFAULTS = {
     # Sports scores
     "sports_home_colour":        "#fea727",  # colours.LIGHT_ORANGE
     "sports_away_colour":        "#28b7f6",  # colours.LIGHT_BLUE
+    # Per-SSID location overrides — keyed by SSID name
+    "ssid_overrides": {},
 }
 
 # Transient sports-pause file — written here, read by the display process
@@ -345,6 +354,54 @@ def test_scene_set():
             json.dump({"mode": mode}, f)
 
     return jsonify({"status": "ok", "mode": mode})
+
+
+# --- Location settings (per-SSID min altitude + scan radius) ---
+
+_LOCATION_DEFAULTS = {"min_altitude": 2000, "radius_miles": 3.0}
+
+
+@app.get("/settings/location")
+def settings_location_get():
+    overrides = get_merged_config().get("ssid_overrides", {})
+    ssids = []
+    for ssid, entry in SSID_LOCATIONS.items():
+        o = overrides.get(ssid, {})
+        ssids.append({
+            "ssid": ssid,
+            "airport": entry.get("airport", ""),
+            "min_altitude": o.get("min_altitude", _LOCATION_DEFAULTS["min_altitude"]),
+            "radius_miles": o.get("radius_miles", _LOCATION_DEFAULTS["radius_miles"]),
+        })
+    return jsonify({"ssids": ssids})
+
+
+@app.post("/settings/location")
+def settings_location_save():
+    body = request.get_json(force=True, silent=True) or {}
+    ssid = body.get("ssid", "").strip()
+
+    if not ssid or ssid not in SSID_LOCATIONS:
+        return jsonify({"error": f"Unknown SSID '{ssid}'"}), 400
+
+    try:
+        min_altitude = int(body.get("min_altitude"))
+        radius_miles = float(body.get("radius_miles"))
+    except (TypeError, ValueError):
+        return jsonify({"error": "min_altitude must be an integer, radius_miles must be a number"}), 400
+
+    if min_altitude < 0:
+        return jsonify({"error": "min_altitude must be 0 or greater"}), 400
+    if radius_miles <= 0:
+        return jsonify({"error": "radius_miles must be greater than 0"}), 400
+
+    user_cfg = load_user_config()
+    overrides = user_cfg.get("ssid_overrides", {})
+    overrides[ssid] = {"min_altitude": min_altitude, "radius_miles": radius_miles}
+    user_cfg["ssid_overrides"] = overrides
+    save_user_config(user_cfg)
+
+    return jsonify({"status": "ok", "ssid": ssid, "min_altitude": min_altitude, "radius_miles": radius_miles})
 
 
 # --- System controls ---

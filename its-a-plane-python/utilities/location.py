@@ -71,14 +71,29 @@ def get_current_ssid():
     return None
 
 
+def _get_ssid_radius(ssid):
+    """Read per-SSID radius override from user_config.json, fallback to ZONE_RADIUS_MILES."""
+    try:
+        import json as _j
+        _ucf = os.path.join(os.path.dirname(__file__), "..", "web", "user_config.json")
+        with open(os.path.abspath(_ucf)) as f:
+            overrides = _j.load(f).get("ssid_overrides", {})
+        return float(overrides.get(ssid, {}).get("radius_miles", ZONE_RADIUS_MILES))
+    except Exception:
+        return ZONE_RADIUS_MILES
+
+
 def get_location():
     """
-    Detect the current SSID and return (location_home, zone_home).
+    Detect the current SSID and return (location_home, zone_home, airport).
 
     location_home: [lat, lon]
     zone_home:     {"tl_y": ..., "tl_x": ..., "br_y": ..., "br_x": ...}
 
-    Returns None for both if detection fails (caller should use config.py defaults).
+    Radius is read per-SSID from user_config.json (web UI override), falling
+    back to ZONE_RADIUS_MILES if no override is set.
+
+    Returns None for all three if detection fails (caller should use config.py defaults).
     """
     ssid = get_current_ssid()
     if ssid is None:
@@ -90,6 +105,7 @@ def get_location():
 
     lat, lon = entry["lat"], entry["lon"]
     location_home = [lat, lon]
-    zone_home = _bounding_box(lat, lon, ZONE_RADIUS_MILES)
+    radius = _get_ssid_radius(ssid)
+    zone_home = _bounding_box(lat, lon, radius)
     airport = entry.get("airport")
     return location_home, zone_home, airport
